@@ -46,7 +46,7 @@ function showCommissions(request, response) {
         inlineHtml += dateFilterSection();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
-        form.addSubmitButton('Update Ticket');
+        // form.addSubmitButton('Update Ticket');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
     } else {
@@ -78,9 +78,8 @@ function franchiseeDropdownSection() {
     var zeesSearch = nlapiLoadSearch('partner', 'customsearch907');
     var zeesSearchResults = zeesSearch.runSearch();
     zeesSearchResults.forEachResult(function (zeesSearchResult) {
-        // var zee_id = zeesSearchResult.getValue('internalid');
-        var zee_id = zeesSearchResult.getId();
-        var zee_name = zeesSearchResult.getValue('name');
+        var zee_id = zeesSearchResult.getValue("internalid", null, "GROUP");
+        var zee_name = zeesSearchResult.getValue("companyname", null, "GROUP");
         inlineQty += '<option value="' + zee_id + '">' + zee_name + '</option>';
         return true;
     });

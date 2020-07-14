@@ -20,7 +20,7 @@ if (nlapiGetContext().getEnvironment() == "SANDBOX") {
 var userRole = parseInt(nlapiGetContext().getRole());
 
 function pageInit() {
-
+    
 }
 
 function saveRecord() {
