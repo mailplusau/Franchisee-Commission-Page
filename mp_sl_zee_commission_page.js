@@ -21,6 +21,7 @@ var userRole = parseInt(nlapiGetContext().getRole());
 
 function showCommissions(request, response) {
     if (request.getMethod() == "GET") {
+        var zee_id = null;
         var zee_name = '';
 
         var form = nlapiCreateForm('Franchisee ' + zee_name + ' : commissions page');
@@ -44,8 +45,10 @@ function showCommissions(request, response) {
 
         inlineHtml += franchiseeDropdownSection();
         inlineHtml += dateFilterSection();
+        inlineHtml += commissionTable();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
+        form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
         // form.addSubmitButton('Update Ticket');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
@@ -71,7 +74,11 @@ function franchiseeDropdownSection() {
     inlineQty += '<div class="col-xs-12 zee_dropdown_div">';
     inlineQty += '<div class="input-group">';
     inlineQty += '<span class="input-group-addon" id="zee_dropdown_text">FRANCHISEE</span>';
-    inlineQty += '<select id="zee_dropdown" class="form-control">';
+    if (userRole == 1000) {
+        inlineQty += '<select id="zee_dropdown" class="form-control" disabled>';
+    } else {
+        inlineQty += '<select id="zee_dropdown" class="form-control">';
+    }
     inlineQty += '<option></option>';
 
     // Load the franchisees options
@@ -109,6 +116,20 @@ function dateFilterSection() {
     inlineQty += '<span class="input-group-addon" id="date_to_text">TO</span>';
     inlineQty += '<input id="date_to" class="form-control date_to" type="date">';
     inlineQty += '</div></div></div></div>';
+
+    return inlineQty;
+}
+
+/**
+ * The table of the revenues and commissions.
+ * @return  {String}    inlineQty
+ */
+function commissionTable() {
+    var inlineQty = '<div class="form-group container commission_table hide">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 commission_table_div">';
+    // The HTML code for the table is inserted with JQuery in the pageInit function of the mp_cl_commission_page script.
+    inlineQty += '</div></div></div>';
 
     return inlineQty;
 }
