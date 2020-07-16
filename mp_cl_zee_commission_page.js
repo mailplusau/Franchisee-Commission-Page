@@ -22,11 +22,11 @@ var userRole = parseInt(nlapiGetContext().getRole());
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
     $('#zee_dropdown').change(function () { loadCommissionTable() });
+    $('#period_dropdown').change(function () { selectDate() });
     $('#date_from, #date_to').change(function () { 
         loadCommissionTable();
         $('#period_dropdown option:selected').attr('selected', false);
     });
-    $('#period_dropdown').change(function () { selectDate() });
 }
 
 function saveRecord() {
