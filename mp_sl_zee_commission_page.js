@@ -44,6 +44,7 @@ function showCommissions(request, response) {
         inlineHtml += '<style>.mandatory{color:red;}</style>';
 
         inlineHtml += franchiseeDropdownSection();
+        inlineHtml += periodDropdownSection();
         inlineHtml += dateFilterSection();
         inlineHtml += commissionTable();
 
@@ -98,6 +99,31 @@ function franchiseeDropdownSection() {
 }
 
 /**
+ * The period dropdown field.
+ * @return  {String}    inlineQty
+ */
+function periodDropdownSection() {
+    var inlineQty = '<div class="form-group container period_dropdown_section">';
+    inlineQty += '<div class="row">';
+    // Period dropdown field
+    inlineQty += '<div class="col-xs-12 period_dropdown_div">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="period_dropdown_text">PERIOD</span>';
+    inlineQty += '<select id="period_dropdown" class="form-control">';
+    inlineQty += '<option></option>';
+    inlineQty += '<option value="this_week">This Week</option>';
+    inlineQty += '<option value="last_week">Last Week</option>';
+    inlineQty += '<option value="this_month">This Month</option>';
+    inlineQty += '<option value="last_month">Last Month</option>';
+    inlineQty += '<option value="full_year">Full Year (1 Jan -)</option>';
+    inlineQty += '<option value="financial_year">Financial Year (1 Jul -)</option>';
+    inlineQty += '</select>';
+    inlineQty += '</div></div></div></div>';
+
+    return inlineQty;
+}
+
+/**
  * The date input fields to filter the invoices.
  * @return  {String}    inlineQty
  */
@@ -125,7 +151,7 @@ function dateFilterSection() {
  * @return  {String}    inlineQty
  */
 function commissionTable() {
-    var inlineQty = '<div class="form-group container commission_table hide">';
+    var inlineQty = '<div class="form-group container commission_table hide" style="font-size: small;">';
     inlineQty += '<div class="row">';
     inlineQty += '<div class="col-xs-12 commission_table_div">';
     // The HTML code for the table is inserted with JQuery in the pageInit function of the mp_cl_commission_page script.
