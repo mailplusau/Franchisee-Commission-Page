@@ -111,6 +111,20 @@ function loadCommissionTable() {
             });
         }
 
+        var paid_revenues = paid_services_revenues + paid_products_revenues;
+        var unpaid_revenues = unpaid_services_revenues + unpaid_products_revenues;
+        var paid_commissions = paid_services_commissions + paid_products_commissions;
+        var unpaid_commissions = unpaid_services_commissions + unpaid_products_commissions;
+        var revenues = paid_revenues + unpaid_revenues;
+        var commissions = paid_commissions + unpaid_commissions;
+
+        paid_revenues = financial(paid_revenues);
+        unpaid_revenues = financial(unpaid_revenues);
+        paid_commissions = financial(paid_commissions);
+        unpaid_commissions = financial(unpaid_commissions);
+        revenues = financial(revenues);
+        commissions = financial(commissions);
+
         var services_revenues = paid_services_revenues + unpaid_services_revenues;
         var services_commissions = paid_services_commissions + unpaid_services_commissions;
         var products_revenues = paid_products_revenues + unpaid_products_revenues;
@@ -141,25 +155,35 @@ function loadCommissionTable() {
         console.log('paid_products_commissions', paid_products_commissions);
         console.log('unpaid_products_commissions', unpaid_products_commissions);
 
+        // Total
+        $('#commission_table tbody tr.total_row.sum_row td[headers="table_revenue"]').text(revenues);
+        $('#commission_table tbody tr.total_row.sum_row td[headers="table_commission"]').text(commissions);
+
+        $('#commission_table tbody tr.total_row.paid_row td[headers="table_revenue"]').text(paid_revenues);
+        $('#commission_table tbody tr.total_row.paid_row td[headers="table_commission"]').text(paid_commissions);
+
+        $('#commission_table tbody tr.total_row.unpaid_row td[headers="table_revenue"]').text(unpaid_revenues);
+        $('#commission_table tbody tr.total_row.unpaid_row td[headers="table_commission"]').text(unpaid_commissions);
+
         // Services
-        $('#commission_table tbody tr:eq(3) td[headers="table_revenue"]').text(services_revenues);
-        $('#commission_table tbody tr:eq(3) td[headers="table_commission"]').text(services_commissions);
+        $('#commission_table tbody tr.services_row.sum_row td[headers="table_revenue"]').text(services_revenues);
+        $('#commission_table tbody tr.services_row.sum_row td[headers="table_commission"]').text(services_commissions);
 
-        $('#commission_table tbody tr:eq(4) td[headers="table_revenue"]').text(paid_services_revenues);
-        $('#commission_table tbody tr:eq(4) td[headers="table_commission"]').text(paid_services_commissions);
+        $('#commission_table tbody tr.services_row.paid_row td[headers="table_revenue"]').text(paid_services_revenues);
+        $('#commission_table tbody tr.services_row.paid_row td[headers="table_commission"]').text(paid_services_commissions);
 
-        $('#commission_table tbody tr:eq(5) td[headers="table_revenue"]').text(unpaid_services_revenues);
-        $('#commission_table tbody tr:eq(5) td[headers="table_commission"]').text(unpaid_services_commissions);
+        $('#commission_table tbody tr.services_row.unpaid_row td[headers="table_revenue"]').text(unpaid_services_revenues);
+        $('#commission_table tbody tr.services_row.unpaid_row td[headers="table_commission"]').text(unpaid_services_commissions);
 
         // Products
-        $('#commission_table tbody tr:eq(6) td[headers="table_revenue"]').text(products_revenues);
-        $('#commission_table tbody tr:eq(6) td[headers="table_commission"]').text(products_commissions);
+        $('#commission_table tbody tr.products_row.sum_row td[headers="table_revenue"]').text(products_revenues);
+        $('#commission_table tbody tr.products_row.sum_row td[headers="table_commission"]').text(products_commissions);
 
-        $('#commission_table tbody tr:eq(7) td[headers="table_revenue"]').text(paid_products_revenues);
-        $('#commission_table tbody tr:eq(7) td[headers="table_commission"]').text(paid_products_commissions);
+        $('#commission_table tbody tr.products_row.paid_row td[headers="table_revenue"]').text(paid_products_revenues);
+        $('#commission_table tbody tr.products_row.paid_row td[headers="table_commission"]').text(paid_products_commissions);
 
-        $('#commission_table tbody tr:eq(8) td[headers="table_revenue"]').text(unpaid_products_revenues);
-        $('#commission_table tbody tr:eq(8) td[headers="table_commission"]').text(unpaid_products_commissions);
+        $('#commission_table tbody tr.products_row.unpaid_row td[headers="table_revenue"]').text(unpaid_products_revenues);
+        $('#commission_table tbody tr.products_row.unpaid_row td[headers="table_commission"]').text(unpaid_products_commissions);
 
         $('.commission_table').removeClass('hide');
     }
@@ -197,7 +221,9 @@ function loadBillSearch(zee_id, date_from, date_to) {
  * @returns {String} inlineQty
  */
 function commissionTable() {
-    var inlineQty = '<table class="table" id="commission_table">';
+    var inlineQty = '<style>/* Total rows */.total_row.sum_row {background-color: rgba(93, 164, 224, 1);}.total_row.paid_row {background-color: rgba(93, 164, 224, 0.5);}.total_row.unpaid_row {background-color: rgba(93, 164, 224, 0.2);}/* Services rows */.services_row.sum_row {background-color: rgba(245, 180, 112, 1);}.services_row.paid_row {background-color: rgba(245, 180, 112, 0.5);}.services_row.unpaid_row {background-color: rgba(245, 180, 112, 0.2);}/* Products rows */.products_row.sum_row {background-color: rgba(163, 218, 80, 1);}.products_row.paid_row {background-color: rgba(163, 218, 80, 0.5);}.products_row.unpaid_row {background-color: rgba(163, 218, 80, 0.2);}</style>';
+
+    inlineQty += '<table class="table" id="commission_table">';
     inlineQty += '<thead>';
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
@@ -206,47 +232,47 @@ function commissionTable() {
     inlineQty += '</tr>';
     inlineQty += '</thead>';
     inlineQty += '<tbody>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="total_row sum_row">';
     inlineQty += '<th scope="row" headers="table_title">Total</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="total_row paid_row">';
     inlineQty += '<th scope="row" headers="table_title">Paid</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="total_row unpaid_row">';
     inlineQty += '<th scope="row" headers="table_title">Unpaid</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="services_row sum_row">';
     inlineQty += '<th scope="row" headers="table_title">Services</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="services_row paid_row">';
     inlineQty += '<th scope="row" headers="table_title">Paid</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="services_row unpaid_row">';
     inlineQty += '<th scope="row" headers="table_title">Unpaid</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="products_row sum_row">';
     inlineQty += '<th scope="row" headers="table_title">Products</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="products_row paid_row">';
     inlineQty += '<th scope="row" headers="table_title">Paid</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
     inlineQty += '</tr>';
-    inlineQty += '<tr>';
+    inlineQty += '<tr class="products_row unpaid_row">';
     inlineQty += '<th scope="row" headers="table_title">Unpaid</th>';
     inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_commission"></td>';
@@ -295,8 +321,12 @@ function dateSelected2Date(date_selected) {
 
 /**
  * @param   {Number} x
- * @returns {Number} The same number, rounded to 2 digits after the comma.
+ * @returns {String} The same number, formatted in Australian dollars.
  */
 function financial(x) {
-    return Number.parseFloat(x).toFixed(2);
+    if (isNullorEmpty(x)) {
+        return "$0.00";
+    } else {
+        return x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
+    }
 }
