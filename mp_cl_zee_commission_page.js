@@ -206,6 +206,17 @@ function loadCommissionTable() {
         unpaid_row = unpaid_row.map(financial);
         total_row = total_row.map(financial);
 
+        // Add number of invoices per category at the beginning of each row
+        paid_services_row = [nb_paid_services].concat(paid_services_row);
+        unpaid_services_row = [nb_unpaid_services].concat(unpaid_services_row);
+        paid_products_row = [nb_paid_products].concat(paid_products_row);
+        unpaid_products_row = [nb_unpaid_products].concat(unpaid_products_row);
+        services_row = [nb_paid_services + nb_unpaid_services].concat(services_row);
+        products_row = [nb_paid_products + nb_unpaid_products].concat(products_row);
+        paid_row =  [nb_paid_services + nb_paid_products].concat(paid_row);
+        unpaid_row = [nb_unpaid_services + nb_unpaid_products].concat(unpaid_row);
+        total_row = [nb_paid_services + nb_paid_products + nb_unpaid_services + nb_unpaid_products].concat(total_row);
+
         console.log('nb_paid_services : ', nb_paid_services);
         console.log('paid_services_bill : ', paid_services_bill);
 
@@ -258,7 +269,8 @@ function loadCommissionTable() {
  * @param {Array}   amounts_array   Array of the values to enter in the commission_table selected row.
  */
 function setRow(row_selector, amounts_array) {
-    var [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
+    var [nb_invoices, revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
+    $(row_selector + ' td[headers="table_nb_invoices"]').text(nb_invoices);
     $(row_selector + ' td[headers="table_revenue"]').text(revenues);
     $(row_selector + ' td[headers="table_revenue_tax"]').text(revenues_tax);
     $(row_selector + ' td[headers="table_revenue_total"]').text(revenues_total);
@@ -411,7 +423,8 @@ function loadBillSearch(zee_id, date_from, date_to) {
  * @returns {String} inlineQty
  */
 function tableRowCells() {
-    var inlineQty = '<td headers="table_revenue"></td>';
+    var inlineQty = '<td headers="table_nb_invoices"></td>';
+    inlineQty += '<td headers="table_revenue"></td>';
     inlineQty += '<td headers="table_revenue_tax"></td>';
     inlineQty += '<td headers="table_revenue_total"></td>';
     inlineQty += '<td headers="table_commission"></td>';
@@ -455,6 +468,7 @@ function commissionTable() {
     inlineQty += '<thead>';
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
+    inlineQty += '<th scope="col" id="table_nb_invoices">Number of invoices</th>';
     inlineQty += '<th scope="col" id="table_revenue">Revenue</th>';
     inlineQty += '<th scope="col" id="table_revenue_tax">Tax</th>';
     inlineQty += '<th scope="col" id="table_revenue_total">Revenue (Total)</th>';
