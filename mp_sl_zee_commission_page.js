@@ -17,12 +17,39 @@ var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
     baseURL = 'https://1048144-sb3.app.netsuite.com';
 }
-var userRole = parseInt(nlapiGetContext().getRole());
+
+var zee_id = null;
+var ctx = nlapiGetContext();
+var userRole = parseInt(ctx.getRole());
+if (userRole == 1000) {
+    zee_id = ctx.getUser();
+}
+
+// For test
+/*
+var userRole = 1000;
+zee_id = '215';
+zee_name = 'Alexandria';
+*/
 
 function showCommissions(request, response) {
     if (request.getMethod() == "GET") {
-        var zee_id = null;
+
         var zee_name = '';
+        var date_from = '';
+        var date_to = '';
+
+        // Load params
+        var params = request.getParameter('custparam_params');
+        if (!isNullorEmpty(params)) {
+            params = JSON.parse(params);
+            zee_id = parseInt(params.zee_id);
+            date_from = dateFilter2DateSelected(params.date_from);
+            date_to = dateFilter2DateSelected(params.date_to);
+        }
+
+        var zeeRecord = nlapiLoadRecord('partner', zee_id);
+        var zee_name = zeeRecord.getFieldValue('companyname');
 
         var form = nlapiCreateForm('Franchisee ' + zee_name + ' : commissions page');
 
@@ -50,6 +77,8 @@ function showCommissions(request, response) {
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
+        form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
+        form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         // form.addSubmitButton('Update Ticket');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
@@ -86,9 +115,13 @@ function franchiseeDropdownSection() {
     var zeesSearch = nlapiLoadSearch('partner', 'customsearch907');
     var zeesSearchResults = zeesSearch.runSearch();
     zeesSearchResults.forEachResult(function (zeesSearchResult) {
-        var zee_id = zeesSearchResult.getValue("internalid", null, "GROUP");
-        var zee_name = zeesSearchResult.getValue("companyname", null, "GROUP");
-        inlineQty += '<option value="' + zee_id + '">' + zee_name + '</option>';
+        var opt_zee_id = zeesSearchResult.getValue("internalid", null, "GROUP");
+        var opt_zee_name = zeesSearchResult.getValue("companyname", null, "GROUP");
+        if (opt_zee_id == zee_id) {
+            inlineQty += '<option value="' + opt_zee_id + '" selected>' + opt_zee_name + '</option>';
+        } else {
+            inlineQty += '<option value="' + opt_zee_id + '">' + opt_zee_name + '</option>';
+        }
         return true;
     });
 
@@ -128,6 +161,7 @@ function periodDropdownSection() {
  * @return  {String}    inlineQty
  */
 function dateFilterSection() {
+
     var inlineQty = '<div class="form-group container date_filter_section">';
     inlineQty += '<div class="row">';
     // Date from field
@@ -158,4 +192,23 @@ function commissionTable() {
     inlineQty += '</div></div></div>';
 
     return inlineQty;
+}
+
+/**
+ * Converts the parameters "date_from" and "date_to" to a correct format for the date input field.
+ * @param   {String}    date_filter     ex: "04/06/2020"
+ * @returns {String}    date_selected   ex: "2020-06-04"
+ */
+function dateFilter2DateSelected(date_filter) {
+    var date_selected = '';
+    if (!isNullorEmpty(date_filter)) {
+        // date_selected = "04/06/2020"
+        var date_array = date_filter.split('/');
+        // date_array = ["04", "06", "2020"]
+        var year = date_array[2];
+        var month = date_array[1];
+        var day = date_array[0];
+        date_selected = year + '-' + month + '-' + day;
+    }
+    return date_selected;
 }

@@ -17,10 +17,36 @@ var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
     baseURL = 'https://1048144-sb3.app.netsuite.com';
 }
-var userRole = parseInt(nlapiGetContext().getRole());
+
+var ctx = nlapiGetContext();
+var userRole = parseInt(ctx.getRole());
+if (userRole == 1000) {
+    var zee_id = ctx.getUser();
+}
+
+// For test
+/*
+var userRole = 1000;
+zee_id = '215';
+zee_name = 'Alexandria';
+*/
 
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
+    
+    var date_from = nlapiGetFieldValue('custpage_date_from');
+    var date_to = nlapiGetFieldValue('custpage_date_to');
+
+    if (!isNullorEmpty(date_from)) {
+        $('#date_from').val(date_from);
+    }
+    if (!isNullorEmpty(date_to)) {
+        $('#date_to').val(date_to);
+    }
+    if (!isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+        loadCommissionTable();
+    }
+
     $('#zee_dropdown').change(function () { loadCommissionTable() });
     $('#period_dropdown').change(function () { selectDate() });
     $('#date_from, #date_to').change(function () {
@@ -213,7 +239,7 @@ function loadCommissionTable() {
         unpaid_products_row = [nb_unpaid_products].concat(unpaid_products_row);
         services_row = [nb_paid_services + nb_unpaid_services].concat(services_row);
         products_row = [nb_paid_products + nb_unpaid_products].concat(products_row);
-        paid_row =  [nb_paid_services + nb_paid_products].concat(paid_row);
+        paid_row = [nb_paid_services + nb_paid_products].concat(paid_row);
         unpaid_row = [nb_unpaid_services + nb_unpaid_products].concat(unpaid_row);
         total_row = [nb_paid_services + nb_paid_products + nb_unpaid_services + nb_unpaid_products].concat(total_row);
 
@@ -270,7 +296,52 @@ function loadCommissionTable() {
  */
 function setRow(row_selector, amounts_array) {
     var [nb_invoices, revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
-    $(row_selector + ' td[headers="table_nb_invoices"]').text(nb_invoices);
+
+    var zee_id = $('#zee_dropdown option:selected').val();
+    var date_from = dateSelected2DateFilter($('#date_from').val());
+    var date_to = dateSelected2DateFilter($('#date_to').val());
+    var type = 'total';
+    var paid = 'all';
+    var row_selector_array = row_selector.split(' ')[2].split('.');
+
+    switch (row_selector_array[1]) {
+        case 'total_row':
+            type = 'total';
+            break;
+        case 'services_row':
+            type = 'services';
+            break;
+        case 'products_row':
+            type = 'products';
+            break;
+    }
+
+    switch (row_selector_array[2]) {
+        case 'sum_row':
+            paid = 'all';
+            break;
+
+        case 'paid_row':
+            paid = 'paid';
+            break;
+
+        case 'unpaid_row':
+            paid = 'unpaid';
+            break;
+    }
+
+    var params = {
+        zee_id: parseInt(zee_id),
+        date_from: date_from,
+        date_to: date_to,
+        type: type,
+        paid: paid
+    };
+    params = JSON.stringify(params);
+    var upload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_zee_comm_inv_datatable', 'customdeploy_sl_zee_comm_inv_datatable') + '&custparam_params=' + encodeURIComponent(params);
+    var inline_link = '<a href="' + upload_url + '">' + nb_invoices + '</a>';
+
+    $(row_selector + ' td[headers="table_nb_invoices"]').html(inline_link);
     $(row_selector + ' td[headers="table_revenue"]').text(revenues);
     $(row_selector + ' td[headers="table_revenue_tax"]').text(revenues_tax);
     $(row_selector + ' td[headers="table_revenue_total"]').text(revenues_total);
@@ -392,11 +463,11 @@ function selectDate() {
 }
 
 /**
- * Load the result set of the invoices records linked to the Franchisee.
+ * Load the result set of the bill records linked to the Franchisee.
  * @param   {String}                zee_id
  * @param   {String}                date_from
  * @param   {String}                date_to
- * @return  {nlobjSearchResultSet}  invoicesResultSet
+ * @return  {nlobjSearchResultSet} billResultSet
  */
 function loadBillSearch(zee_id, date_from, date_to) {
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
@@ -462,6 +533,9 @@ function commissionTable() {
 
     // Headers cells
     inlineQty += '#commission_table th {font-weight: bold;}';
+
+    // Links
+    inlineQty += '#commission_table a {color: #24385b;}';
     inlineQty += '</style>';
 
     inlineQty += '<table class="table" id="commission_table">';
