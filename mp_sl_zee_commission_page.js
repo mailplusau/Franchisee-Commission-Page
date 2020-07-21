@@ -9,7 +9,7 @@
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-13 16:23:00
+* @Last Modified time: 2020-07-21 11:17:00
 *
 */
 
@@ -48,8 +48,10 @@ function showCommissions(request, response) {
             date_to = dateFilter2DateSelected(params.date_to);
         }
 
-        var zeeRecord = nlapiLoadRecord('partner', zee_id);
-        var zee_name = zeeRecord.getFieldValue('companyname');
+        if (!isNullorEmpty(zee_id)) {
+            var zeeRecord = nlapiLoadRecord('partner', zee_id);
+            var zee_name = zeeRecord.getFieldValue('companyname');
+        }
 
         var form = nlapiCreateForm('Franchisee ' + zee_name + ' : commissions page');
 

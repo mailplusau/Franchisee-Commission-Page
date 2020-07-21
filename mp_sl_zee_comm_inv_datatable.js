@@ -7,7 +7,7 @@
 * Description: Ability for the franchisee to see the commission the details of the commissions they earned for each invoice.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-20 09:39:00
+* @Last Modified time: 2020-07-21 11:17:00
 *
 */
 
@@ -101,7 +101,6 @@ function showInvoicesList(request, response) {
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         form.addField('custpage_type', 'text', 'Type').setDisplayType('hidden').setDefaultValue(type);
         form.addField('custpage_paid', 'text', 'Paid').setDisplayType('hidden').setDefaultValue(paid);
-        // form.addSubmitButton('Update Ticket');
         form.addButton('custpage_back', 'Back', 'onBack()');
         form.setScript('customscript_cl_zee_comm_inv_datatable');
         response.writePage(form);
