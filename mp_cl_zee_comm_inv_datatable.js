@@ -82,7 +82,7 @@ $(document).ready(function () {
                 visible: false,
                 searchable: false
             }],
-        rowCallback: function(row, data) {
+        rowCallback: function (row, data) {
             if (data[9] == 'Open') {
                 if ($(row).hasClass('odd')) {
                     $(row).css('background-color', 'LemonChiffon');
@@ -131,6 +131,8 @@ function loadDatatable() {
                 console.log('billResult : ', billResult);
 
                 var invoice_number = billResult.getText('custbody_invoice_reference');
+                var invoice_id = billResult.getValue('custbody_invoice_reference');
+                var invoice_link = '<a href="' + baseURL + '/app/accounting/transactions/custinvc.nl?id=' + invoice_id + '">' + invoice_number + '</a>'
                 var invoice_date = billResult.getValue('custbody_invoice_reference_trandate');
                 var customer_name = billResult.getText('custbody_invoice_customer');
                 var total_revenue = parseFloat(billResult.getValue('custbody_invoicetotal'));
@@ -138,8 +140,12 @@ function loadDatatable() {
                 var invoice_type = billResult.getValue('custbody_related_inv_type');
                 if (isNullorEmpty(invoice_type)) {
                     invoice_type = 'Services';
+                    invoice_number = invoice_link;
                 } else {
                     invoice_type = 'Products';
+                    if (userRole != 1000) {
+                        invoice_number = invoice_link;
+                    }
                 }
                 var bill_number = billResult.getValue('invoicenum');
 
