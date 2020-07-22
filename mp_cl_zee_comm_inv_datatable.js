@@ -39,28 +39,58 @@ $(document).ready(function () {
         data: billsDataSet,
         columns: [
             { title: "Invoice Number" },
+            {
+                title: "Invoice Date",
+                type: "date"
+            },
             { title: "Customer Name" },
-            { title: "Total Revenue" },
-            { title: "Total Commission" },
+            {
+                title: "Total Revenue",
+                type: "num-fmt"
+            },
+            {
+                title: "Total Commission",
+                type: "num-fmt"
+            },
+            { title: "Type" },
             { title: "Bill Number" },
+            { title: "Bill Payment" },
+            {
+                title: "Bill Payment Date",
+                type: "date"
+            },
             { title: "Invoice Status" },
             { title: "paid_amount == total_commission" }
         ],
-        columnDefs: [{
-            targets: -1,
-            visible: false,
-            searchable: false
-        },
-        {
-            targets: 3,
-            createdCell: function (td, cellData, rowData, row, col) {
-                if (rowData[6] === false) {
-                    // If the paid amount is different to the commission amount,
-                    // the cell background is red.
-                    $(td).css('background-color', '#ffa6a6');
+        columnDefs: [
+            {
+                targets: 2,
+                className: 'dt-body-left'
+            },
+            {
+                targets: 4,
+                createdCell: function (td, cellData, rowData, row, col) {
+                    if (rowData[-1] === false) {
+                        // If the paid amount is different to the commission amount,
+                        // the cell background is red.
+                        $(td).css('background-color', '#ffa6a6');
+                    }
+                }
+            },
+            {
+                targets: -1,
+                visible: false,
+                searchable: false
+            }],
+        rowCallback: function(row, data) {
+            if (data[9] == 'Open') {
+                if ($(row).hasClass('odd')) {
+                    $(row).css('background-color', 'LemonChiffon');
+                } else {
+                    $(row).css('background-color', 'LightYellow');
                 }
             }
-        }]
+        }
     });
 });
 
@@ -88,36 +118,60 @@ function loadDatatable() {
     $('#result_bills').empty();
     var billsDataSet = [];
 
+    // Because the invoice_date value is retrieved, and it's an invoice related field,
+    // each result is shown three times in the billResultSet.
+    // Thus, a set is used to make sure we display each result only once.
+    var bills_id_set = new Set();
+
     if (!isNullorEmpty(billResultSet)) {
         billResultSet.forEachResult(function (billResult) {
+            var bill_id = billResult.getValue('tranid');
+            if (!bills_id_set.has(bill_id)) {
+                bills_id_set.add(bill_id);
+                console.log('billResult : ', billResult);
 
-            var invoice_number = billResult.getText('custbody_invoice_reference');
-            var customer_name = billResult.getText('custbody_invoice_customer');
-            var total_revenue = parseFloat(billResult.getValue('custbody_invoicetotal'));
-            var total_commission = parseFloat(billResult.getValue('amount'));
-            var bill_number = billResult.getValue('invoicenum');
-
-            // For the positive commission, check that the paid amount equals the commission amount.
-            // If not, the cell background will be colored in red.
-            var paid_amount_is_total_commission = '';
-            if (total_commission > 0) {
-                var bill_id = billResult.getValue('tranid');
-                var billRecord = nlapiLoadRecord('vendorbill', bill_id);
-                var lineitems = billRecord.lineitems;
-                if (!isNullorEmpty(lineitems.links)) {
-                    var paid_amount = lineitems.links[1].total;
-                    paid_amount_is_total_commission = (paid_amount == total_commission);
+                var invoice_number = billResult.getText('custbody_invoice_reference');
+                var invoice_date = billResult.getValue('custbody_invoice_reference_trandate');
+                var customer_name = billResult.getText('custbody_invoice_customer');
+                var total_revenue = parseFloat(billResult.getValue('custbody_invoicetotal'));
+                var total_commission = parseFloat(billResult.getValue('amount'));
+                var invoice_type = billResult.getValue('custbody_related_inv_type');
+                if (isNullorEmpty(invoice_type)) {
+                    invoice_type = 'Services';
                 } else {
-                    console.log('lineitems.expense : ', lineitems.expense);
+                    invoice_type = 'Products';
                 }
+                var bill_number = billResult.getValue('invoicenum');
+
+                // For the positive commission, check that the paid amount equals the commission amount.
+                // If not, the cell background will be colored in red.
+                var bill_payment_id = '';
+                var bill_payment = '';
+                var bill_payment_date = '';
+                var paid_amount_is_total_commission = '';
+                if (total_commission > 0) {
+                    var billRecord = nlapiLoadRecord('vendorbill', bill_id);
+                    var lineitems = billRecord.lineitems;
+                    if (!isNullorEmpty(lineitems.links)) {
+                        var lineitems_links_1 = lineitems.links[1];
+                        var paid_amount = lineitems_links_1.total;
+                        bill_payment_id = lineitems_links_1.id;
+                        bill_payment = 'Bill #' + bill_payment_id;
+                        bill_payment_date = lineitems_links_1.trandate;
+                        paid_amount_is_total_commission = (paid_amount == total_commission);
+                    } else {
+                        console.log('lineitems.expense : ', lineitems.expense);
+                    }
+                }
+
+                var invoice_status = billResult.getText('statusref');
+
+                invoice_date = dateNetsuite2DateSelectedFormat(invoice_date);
+                total_revenue = financial(total_revenue);
+                total_commission = financial(total_commission);
+                bill_payment_date = dateNetsuite2DateSelectedFormat(bill_payment_date);
+                billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_status, paid_amount_is_total_commission]);
             }
-
-            var invoice_status = billResult.getText('statusref');
-
-            total_revenue = financial(total_revenue);
-            total_commission = financial(total_commission);
-            billsDataSet.push([invoice_number, customer_name, total_revenue, total_commission, bill_number, invoice_status, paid_amount_is_total_commission]);
-
             return true;
         });
     }
@@ -185,5 +239,30 @@ function financial(x) {
         return "$0.00";
     } else {
         return x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
+    }
+}
+
+/**
+ * Converts the date string in the "date_netsuite" format to the format of "date_selected".
+ * @param   {String}    date_netsuite    ex: '4/6/2020'
+ * @returns {String}    date            ex: '2020-06-04'
+ */
+function dateNetsuite2DateSelectedFormat(date_netsuite) {
+    if (isNullorEmpty(date_netsuite)) {
+        return '';
+    } else {
+        // date_netsuite = '4/6/2020'
+        var date_array = date_netsuite.split('/');
+        // date_array = ["4", "6", "2020"]
+        var year = date_array[2];
+        var month = date_array[1];
+        if (month < 10) {
+            month = '0' + month;
+        }
+        var day = date_array[0];
+        if (day < 10) {
+            day = '0' + day;
+        }
+        return year + '-' + month + '-' + day;
     }
 }
