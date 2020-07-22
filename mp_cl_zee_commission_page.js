@@ -120,6 +120,7 @@ function loadCommissionTable() {
         // each result is shown three times in the billResultSet.
         // Thus, a set is used to make sure we display each result only once.
         var bills_id_set = new Set();
+        var operator_dict = {};
 
         var i = 0;
 
@@ -128,13 +129,16 @@ function loadCommissionTable() {
                 var bill_id = billResult.getValue('tranid');
                 if (!bills_id_set.has(bill_id)) {
                     bills_id_set.add(bill_id);
-                    
+
                     if (i == 0) {
                         console.log('billResult : ', billResult);
                         i += 1;
                     }
 
+                    nlapiSetFieldValue('custpage_operator_id', '');
+
                     var invoice_number = billResult.getText('custbody_invoice_reference');
+                    var invoice_id = billResult.getValue('custbody_invoice_reference');
                     var bill_number = billResult.getValue('invoicenum');
                     var invoice_type = billResult.getValue('custbody_related_inv_type');
                     var invoice_status = billResult.getValue('statusref');
@@ -185,12 +189,44 @@ function loadCommissionTable() {
                         }
                     } else {
                         // Products
+
+                        // Operator dictionnary
+                        var barcodeResultSet = loadBarcodesSearch(invoice_id);
+                        barcodeResultSet.forEachResult(function (barcodeResult) {
+                            var operator_id = barcodeResult.getValue('custrecord_cust_prod_stock_operator');
+                            var operator_name = barcodeResult.getText('custrecord_cust_prod_stock_operator');
+                            nlapiSetFieldValue('custpage_operator_id', operator_id);
+
+
+                            if (isNullorEmpty(operator_id)) {
+                                console.log('barcodeResult : ', barcodeResult);
+                            }
+
+                            if (operator_dict[operator_id] == undefined) {
+                                operator_dict[operator_id] = {
+                                    name: operator_name,
+                                    total_paid_amount: 0,
+                                    tax_paid_amount: 0,
+                                    total_unpaid_amount: 0,
+                                    tax_unpaid_amount: 0
+                                };
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        })
+
+                        var operator_id = nlapiGetFieldValue('custpage_operator_id');
                         switch (invoice_status) {
                             case 'open':        // unpaid
                                 unpaid_products_revenues_tax += revenue_tax;
                                 unpaid_products_commissions_tax += tax_commission;
                                 unpaid_products_revenues_total += total_amount;
                                 unpaid_products_commissions_total += billing_amount;
+                                if (!isNullorEmpty(operator_id)) {
+                                    operator_dict[operator_id].total_unpaid_amount += billing_amount;
+                                    operator_dict[operator_id].tax_unpaid_amount += tax_commission;
+                                }
                                 nb_unpaid_products += 1;
                                 unpaid_products_bill = billJson; // Just to verify
                                 break;
@@ -200,6 +236,10 @@ function loadCommissionTable() {
                                 paid_products_commissions_tax += tax_commission;
                                 paid_products_revenues_total += total_amount;
                                 paid_products_commissions_total += billing_amount;
+                                if (!isNullorEmpty(operator_id)) {
+                                    operator_dict[operator_id].total_paid_amount += billing_amount;
+                                    operator_dict[operator_id].tax_paid_amount += tax_commission;
+                                }
                                 nb_paid_products += 1;
                                 paid_products_bill = billJson; // Just to verify
                                 break;
@@ -296,6 +336,12 @@ function loadCommissionTable() {
         var unpaid_products_selector = '#commission_table tbody tr.products_row.unpaid_row';
         setRow(unpaid_products_selector, unpaid_products_row);
 
+        if (Object.keys(operator_dict).length > 0) {
+            inlineHtmlOperatorTable = operatorTable(operator_dict);
+            $('div.col-xs-12.operator_table_div').html(inlineHtmlOperatorTable);
+            $('.operator_table').removeClass('hide');
+        }
+        
         $('.commission_table').removeClass('hide');
     }
 }
@@ -363,14 +409,21 @@ function setRow(row_selector, amounts_array) {
 
 /**
  * Calculate the commission and revenue by deducting the tax from the total amount.
- * @param   {Array} amount_row  (length 4)
- * @returns {Array} amount_row  (length 6)
+ * @param   {Array} amount_row  (length 2 or 4)
+ * @returns {Array} amount_row  (length 3 or 6)
  */
 function calculateWithoutTax(amount_row) {
-    var [revenues_tax, revenues_total, commissions_tax, commissions_total] = amount_row;
-    var revenues = revenues_total - revenues_tax;
-    var commission = commissions_total - commissions_tax;
-    return [revenues, revenues_tax, revenues_total, commission, commissions_tax, commissions_total];
+    var array_length = amount_row.length;
+    if (array_length == 4) {
+        var [revenues_tax, revenues_total, commissions_tax, commissions_total] = amount_row;
+        var revenues = revenues_total - revenues_tax;
+        var commission = commissions_total - commissions_tax;
+        return [revenues, revenues_tax, revenues_total, commission, commissions_tax, commissions_total];
+    } else if (array_length == 2) {
+        var [commissions_tax, commissions_total] = amount_row;
+        var commission = commissions_total - commissions_tax;
+        return [commission, commissions_tax, commissions_total];
+    }
 }
 
 /**
@@ -500,6 +553,21 @@ function loadBillSearch(zee_id, date_from, date_to) {
 }
 
 /**
+ * Loads the barcode records related to an invoice.
+ * @param   {Number} invoice_id
+ * @return  {nlobjSearchResultSet} barcodeResultSet
+ */
+function loadBarcodesSearch(invoice_id) {
+    var barcodesSearch = nlapiLoadSearch('customrecord_customer_product_stock', 'customsearch_zee_commission_page_2');
+    var barcodeFilterExpression = barcodesSearch.getFilterExpression();
+    barcodeFilterExpression.push('AND', ['custrecord_prod_stock_invoice', 'is', invoice_id]);
+    barcodesSearch.setFilterExpression(barcodeFilterExpression);
+    var barcodeResultSet = barcodesSearch.runSearch();
+
+    return barcodeResultSet;
+}
+
+/**
  * The inline HTML for the cells in each row of the commission_table.
  * (Except the header cell of each row)
  * @returns {String} inlineQty
@@ -601,6 +669,61 @@ function commissionTable() {
     inlineQty += '</tr>';
     inlineQty += '</tbody>';
     inlineQty += '</table>';
+
+    return inlineQty;
+}
+
+function operatorTable(operator_dict) {
+    var operator_id_array = Object.keys(operator_dict);
+
+    var inlineQty = '<style></style>';
+    inlineQty += '<table class="table" id="operator_table">'
+    inlineQty += '<thead>'
+    inlineQty += '<tr>'
+    inlineQty += '<th scope="col" id="table_operator_title"></th>'
+    inlineQty += '<th scope="col" id="table_operator_commission">Commission</th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_tax">Tax</th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_total">Commission (Total)</th>'
+    inlineQty += '</tr>'
+    inlineQty += '</thead>'
+    inlineQty += '<tbody>'
+
+    operator_id_array.forEach(function (operator_id) {
+        var operator_object = operator_dict[operator_id];
+        var operator_name = operator_object.name;
+        var paid_row = [operator_object.tax_paid_amount, operator_object.total_paid_amount];
+        var unpaid_row = [operator_object.tax_unpaid_amount, operator_object.total_unpaid_amount];
+
+        paid_row = calculateWithoutTax(paid_row);
+        unpaid_row = calculateWithoutTax(unpaid_row);
+        var sum_row = sum2arrays(paid_row, unpaid_row);
+
+        paid_row = paid_row.map(financial);
+        unpaid_row = unpaid_row.map(financial);
+        sum_row = sum_row.map(financial);
+
+        inlineQty += '<tr class="' + operator_id + '_row sum_row" >';
+        inlineQty += '<th scope="row" headers="table_operator_title">' + operator_name + '</th >'
+        inlineQty += '<td headers="table_operator_commission">' + sum_row[0] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_tax">' + sum_row[1] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_total">' + sum_row[2] + '</td>'
+        inlineQty += '</tr>'
+        inlineQty += '<tr class=' + operator_id + '_row paid_row">'
+        inlineQty += '<th scope="row" headers="table_operator_title">Paid</th>'
+        inlineQty += '<td headers="table_operator_commission">' + paid_row[0] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_tax">' + paid_row[1] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_total">' + paid_row[2] + '</td>'
+        inlineQty += '</tr>'
+        inlineQty += '<tr class="' + operator_id + '_row unpaid_row">'
+        inlineQty += '<th scope="row" headers="table_operator_title">Unpaid</th>'
+        inlineQty += '<td headers="table_operator_commission">' + unpaid_row[0] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_tax">' + unpaid_row[1] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_total">' + unpaid_row[2] + '</td>'
+        inlineQty += '</tr>'
+    });
+
+    inlineQty += '</tbody>'
+    inlineQty += '</table>'
 
     return inlineQty;
 }

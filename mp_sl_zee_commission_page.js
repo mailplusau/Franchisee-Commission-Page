@@ -76,11 +76,13 @@ function showCommissions(request, response) {
         inlineHtml += periodDropdownSection();
         inlineHtml += dateFilterSection();
         inlineHtml += commissionTable();
+        inlineHtml += operatorTable();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
+        form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
         // form.addSubmitButton('Update Ticket');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
@@ -190,6 +192,20 @@ function commissionTable() {
     var inlineQty = '<div class="form-group container commission_table hide" style="font-size: small;">';
     inlineQty += '<div class="row">';
     inlineQty += '<div class="col-xs-12 commission_table_div">';
+    // The HTML code for the table is inserted with JQuery in the pageInit function of the mp_cl_commission_page script.
+    inlineQty += '</div></div></div>';
+
+    return inlineQty;
+}
+
+/**
+ * The table of commissions sorted by operator.
+ * @return  {String}    inlineQty
+ */
+function operatorTable() {
+    var inlineQty = '<div class="form-group container operator_table hide" style="font-size: small;">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 operator_table_div">';
     // The HTML code for the table is inserted with JQuery in the pageInit function of the mp_cl_commission_page script.
     inlineQty += '</div></div></div>';
 
