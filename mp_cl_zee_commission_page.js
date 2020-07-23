@@ -67,7 +67,7 @@ function loadCommissionTable() {
 
     var zee_id = $('#zee_dropdown option:selected').val();
     var zee_name = $('#zee_dropdown option:selected').text();
-    $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission page');
+    $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission Page');
     var date_from = dateSelected2DateFilter($('#date_from').val());
     var date_to = dateSelected2DateFilter($('#date_to').val());
 

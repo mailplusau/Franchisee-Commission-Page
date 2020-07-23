@@ -53,7 +53,7 @@ function showCommissions(request, response) {
             var zee_name = zeeRecord.getFieldValue('companyname');
         }
 
-        var form = nlapiCreateForm('Franchisee ' + zee_name + ' : commissions page');
+        var form = nlapiCreateForm('Franchisee ' + zee_name + ' : Commissions Page');
 
         // Load jQuery
         var inlineHtml = '<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>';

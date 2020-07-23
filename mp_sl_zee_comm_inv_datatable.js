@@ -54,11 +54,11 @@ function showInvoicesList(request, response) {
                 break;
 
             case 'paid':
-                paid_title = 'paid';
+                paid_title = 'Paid';
                 break;
 
             case 'unpaid':
-                paid_title = 'unpaid';
+                paid_title = 'Unpaid';
                 break;
         }
 
@@ -68,16 +68,16 @@ function showInvoicesList(request, response) {
                 type_title = '';
                 break;
             case 'services':
-                type_title = 'services';
+                type_title = 'Services';
                 break;
             case 'products':
-                type_title = 'products';
+                type_title = 'Products';
                 break;
         }
         if (type == 'total' && paid == 'all') {
-            var form = nlapiCreateForm('Franchisee ' + zee_name + ' : All columns');
+            var form = nlapiCreateForm('Franchisee ' + zee_name + ' : All Columns');
         } else {
-            var form = nlapiCreateForm('Franchisee ' + zee_name + ' : ' + paid_title + ' ' + type_title + ' detail');
+            var form = nlapiCreateForm('Franchisee ' + zee_name + ' : ' + paid_title + ' ' + type_title + ' Detail');
         }
 
         // Load jQuery
