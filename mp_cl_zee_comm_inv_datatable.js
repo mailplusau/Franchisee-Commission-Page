@@ -30,20 +30,18 @@ zee_name = 'Alexandria';
 */
 
 function pageInit() {
-    // Add date subtitle
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
-    var date_title = '';
-    if (!isNullorEmpty(date_from) && isNullorEmpty(date_to)) {
-        date_title = 'From ' + date_from;
-    } else if (isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        date_title = 'To ' + date_to;
-    } else if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        date_title = 'From ' + date_from + ' to ' + date_to;
-    }
-    $('.uir-page-title-firstline h1').after('<br><h1 class="uir-record-type" style="margin-top:0">' + date_title + '</h1>');
 
-    // Load Datatable results
+    if (!isNullorEmpty(date_from)) {
+        date_from_input = dateFilter2DateSelected(date_from);
+        $('#date_from').val(date_from_input);
+    }
+    if (!isNullorEmpty(date_to)) {
+        date_to_input = dateFilter2DateSelected(date_to);
+        $('#date_to').val(date_to_input);
+    }
+
     loadDatatable();
 }
 
@@ -285,4 +283,23 @@ function dateNetsuite2DateSelectedFormat(date_netsuite) {
         }
         return year + '-' + month + '-' + day;
     }
+}
+
+/**
+ * Converts the parameters "date_from" and "date_to" to a correct format for the date input field.
+ * @param   {String}    date_filter     ex: "04/06/2020"
+ * @returns {String}    date_selected   ex: "2020-06-04"
+ */
+function dateFilter2DateSelected(date_filter) {
+    var date_selected = '';
+    if (!isNullorEmpty(date_filter)) {
+        // date_selected = "04/06/2020"
+        var date_array = date_filter.split('/');
+        // date_array = ["04", "06", "2020"]
+        var year = date_array[2];
+        var month = date_array[1];
+        var day = date_array[0];
+        date_selected = year + '-' + month + '-' + day;
+    }
+    return date_selected;
 }

@@ -97,6 +97,7 @@ function showInvoicesList(request, response) {
         inlineHtml += '<link type="text/css" rel="stylesheet" href="https://1048144.app.netsuite.com/core/media/media.nl?id=2090583&c=1048144&h=a0ef6ac4e28f91203dfe&_xt=.css">';
         inlineHtml += '<style>.mandatory{color:red;}</style>';
 
+        inlineHtml += dateFilterSection();
         inlineHtml += dataTablePreview();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
@@ -111,6 +112,30 @@ function showInvoicesList(request, response) {
     } else {
         nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_comm_inv_datatable', 'customdeploy_sl_zee_comm_inv_datatable', null, null);
     }
+}
+
+/**
+ * The date input fields to filter the invoices.
+ * @return  {String}    inlineQty
+ */
+function dateFilterSection() {
+
+    var inlineQty = '<div class="form-group container date_filter_section">';
+    inlineQty += '<div class="row">';
+    // Date from field
+    inlineQty += '<div class="col-xs-6 date_from">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="date_from_text">FROM</span>';
+    inlineQty += '<input id="date_from" class="form-control date_from" type="date" disabled/>';
+    inlineQty += '</div></div>';
+    // Date to field
+    inlineQty += '<div class="col-xs-6 date_to">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="date_to_text">TO</span>';
+    inlineQty += '<input id="date_to" class="form-control date_to" type="date" disabled>';
+    inlineQty += '</div></div></div></div>';
+
+    return inlineQty;
 }
 
 /**
