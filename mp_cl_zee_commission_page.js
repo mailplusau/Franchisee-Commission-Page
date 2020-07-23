@@ -44,19 +44,54 @@ function pageInit() {
         $('#date_to').val(date_to);
     }
     if (!isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+        showLoading();
         loadCommissionTable();
+        hideLoading();
+    }
+    if (!isNullorEmpty($('#period_dropdown option:selected').val())) {
+        showLoading();
+        selectDate();
+        hideLoading();
     }
 
-    $('#zee_dropdown').change(function () { loadCommissionTable() });
-    $('#period_dropdown').change(function () { selectDate() });
-    $('#date_from, #date_to').change(function () {
+    $('#zee_dropdown').change(function () {
+        showLoading();
         loadCommissionTable();
+        hideLoading();
+    });
+    $('#period_dropdown').change(function () {
+        showLoading();
+        selectDate();
+        hideLoading();
+    });
+    $('#date_from, #date_to').change(function () {
+        showLoading();
+        loadCommissionTable();
+        hideLoading();
         $('#period_dropdown option:selected').attr('selected', false);
     });
 }
 
 function saveRecord() {
 
+}
+
+/**
+ * Display the loading message.
+ * Hide the tables
+ */
+function showLoading() {
+    $('.loading_section').removeClass('hide');
+    $('.content_section').addClass('hide');
+}
+
+/**
+ * Hide the loading message.
+ * Display the tables
+ */
+function hideLoading() {
+    $('.loading_section').addClass('hide');
+    $('.content_section').removeClass('hide');
 }
 
 /**

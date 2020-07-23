@@ -73,10 +73,13 @@ function showCommissions(request, response) {
         inlineHtml += '<style>.mandatory{color:red;}</style>';
 
         inlineHtml += franchiseeDropdownSection();
-        inlineHtml += periodDropdownSection();
+        inlineHtml += periodDropdownSection(date_from, date_to);
         inlineHtml += dateFilterSection();
+        inlineHtml += loadingSection();
+        inlineHtml += '<div class="form-group container content_section hide">';
         inlineHtml += commissionTable();
         inlineHtml += operatorTable();
+        inlineHtml += '</div';
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
@@ -89,6 +92,16 @@ function showCommissions(request, response) {
     } else {
         nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page', null, null);
     }
+}
+
+function loadingSection() {
+    var inlineQty = '<div class="form-group container loading_section" style="text-align:center">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 loading_div">';
+    inlineQty += '<h1>Loading...</h1>';
+    inlineQty += '</div></div></div>';
+
+    return inlineQty;
 }
 
 /**
@@ -137,9 +150,11 @@ function franchiseeDropdownSection() {
 
 /**
  * The period dropdown field.
+ * @param   {String}    date_from
+ * @param   {String}    date_to
  * @return  {String}    inlineQty
  */
-function periodDropdownSection() {
+function periodDropdownSection(date_from, date_to) {
     var inlineQty = '<div class="form-group container period_dropdown_section">';
     inlineQty += '<div class="row">';
     // Period dropdown field
@@ -149,7 +164,11 @@ function periodDropdownSection() {
     inlineQty += '<select id="period_dropdown" class="form-control">';
     inlineQty += '<option></option>';
     inlineQty += '<option value="this_week">This Week</option>';
-    inlineQty += '<option value="last_week">Last Week</option>';
+    if (!isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+        inlineQty += '<option value="last_week">Last Week</option>';
+    } else {
+        inlineQty += '<option value="last_week" selected>Last Week</option>';
+    }
     inlineQty += '<option value="this_month">This Month</option>';
     inlineQty += '<option value="last_month">Last Month</option>';
     inlineQty += '<option value="full_year">Full Year (1 Jan -)</option>';
