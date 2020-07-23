@@ -49,6 +49,7 @@ var billsDataSet = [];
 $(document).ready(function () {
     $('#bills-preview').DataTable({
         data: billsDataSet,
+        pageLength: 100,
         columns: [
             { title: "Invoice Number" },
             {
