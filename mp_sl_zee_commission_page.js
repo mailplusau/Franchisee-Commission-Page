@@ -2,14 +2,14 @@
 * Module Description
 * 
 * NSVersion    Date                Author         
-* 1.00         2020-07-14 10:05:00 Raphael
+* 2.00         2020-07-23 15:07:00 Raphael
 *
 * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
 *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-21 11:17:00
+* @Last Modified time: 2020-07-23 15:07:00
 *
 */
 
