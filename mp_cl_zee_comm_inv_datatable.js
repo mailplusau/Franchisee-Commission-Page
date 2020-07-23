@@ -30,6 +30,20 @@ zee_name = 'Alexandria';
 */
 
 function pageInit() {
+    // Add date subtitle
+    var date_from = nlapiGetFieldValue('custpage_date_from');
+    var date_to = nlapiGetFieldValue('custpage_date_to');
+    var date_title = '';
+    if (!isNullorEmpty(date_from) && isNullorEmpty(date_to)) {
+        date_title = 'From ' + date_from;
+    } else if (isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
+        date_title = 'To ' + date_to;
+    } else if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
+        date_title = 'From ' + date_from + ' to ' + date_to;
+    }
+    $('.uir-page-title-firstline h1').after('<br><h1 class="uir-record-type" style="margin-top:0">' + date_title + '</h1>');
+
+    // Load Datatable results
     loadDatatable();
 }
 
