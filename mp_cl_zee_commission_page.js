@@ -64,7 +64,7 @@ function saveRecord() {
  */
 function loadCommissionTable() {
     $('#operator_results').empty();
-    
+
     var zee_id = $('#zee_dropdown option:selected').val();
     var zee_name = $('#zee_dropdown option:selected').text();
     $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission page');
@@ -599,15 +599,15 @@ function commissionTable() {
     inlineQty += '.total_row.paid_row {background-color: rgba(93, 164, 224, 0.5);}';
     inlineQty += '.total_row.unpaid_row {background-color: rgba(93, 164, 224, 0.2);}';
 
-    // Services rows & Even operator rows
-    inlineQty += '.services_row.sum_row, .even_row.sum_row {background-color: rgba(245, 180, 112, 1);}';
-    inlineQty += '.services_row.paid_row, .even_row.paid_row {background-color: rgba(245, 180, 112, 0.5);}';
-    inlineQty += '.services_row.unpaid_row, .even_row.unpaid_row {background-color: rgba(245, 180, 112, 0.2);}';
+    // Services rows
+    inlineQty += '.services_row.sum_row {background-color: rgba(245, 180, 112, 1);}';
+    inlineQty += '.services_row.paid_row {background-color: rgba(245, 180, 112, 0.5);}';
+    inlineQty += '.services_row.unpaid_row {background-color: rgba(245, 180, 112, 0.2);}';
 
-    // Products rows & Odd operator rows
-    inlineQty += '.products_row.sum_row, .odd_row.sum_row {background-color: rgba(163, 218, 80, 1);}';
-    inlineQty += '.products_row.paid_row, .odd_row.paid_row {background-color: rgba(163, 218, 80, 0.5);}';
-    inlineQty += '.products_row.unpaid_row, .odd_row.unpaid_row {background-color: rgba(163, 218, 80, 0.2);}';
+    // Products rows
+    inlineQty += '.products_row.sum_row {background-color: rgba(163, 218, 80, 1);}';
+    inlineQty += '.products_row.paid_row {background-color: rgba(163, 218, 80, 0.5);}';
+    inlineQty += '.products_row.unpaid_row {background-color: rgba(163, 218, 80, 0.2);}';
 
     // Sum rows
     inlineQty += '.sum_row [headers=table_title], .sum_row [headers=table_revenue_total], .sum_row [headers=table_commission_total] {font-size: medium;}';
@@ -679,6 +679,11 @@ function operatorTable(operator_dict) {
     var operator_id_array = Object.keys(operator_dict);
 
     var inlineQty = '<style>';
+    /*Operator rows*/
+    inlineQty += '#operator_table .sum_row {background-color: rgba(128,128,128, 0.8);}';
+    inlineQty += '#operator_table .paid_row {background-color: rgba(128,128,128, 0.5);}';
+    inlineQty += '#operator_table .unpaid_row {background-color: rgba(128,128,128, 0.2);}';
+
     /* Sum rows */
     inlineQty += '.sum_row [headers=table_operator_title], .sum_row [headers=table_operator_commission_total] {font-size: medium;}';
 
@@ -697,17 +702,7 @@ function operatorTable(operator_dict) {
     inlineQty += '</thead>'
     inlineQty += '<tbody id="operator_results">'
 
-    operator_id_array.forEach(function (operator_id, index) {
-        var odd_even = '';
-        switch (index % 2) {
-            case 0:
-                odd_even = 'even';
-                break;
-
-            case 1:
-                odd_even = 'odd';
-                break;
-        }
+    operator_id_array.forEach(function (operator_id) {
         var operator_object = operator_dict[operator_id];
         var operator_name = operator_object.name;
         var paid_row = [operator_object.tax_paid_amount, operator_object.total_paid_amount];
@@ -721,19 +716,19 @@ function operatorTable(operator_dict) {
         unpaid_row = unpaid_row.map(financial);
         sum_row = sum_row.map(financial);
 
-        inlineQty += '<tr class="' + operator_id + '_row sum_row ' + odd_even + '_row">';
+        inlineQty += '<tr class="' + operator_id + '_row sum_row">';
         inlineQty += '<th scope="row" headers="table_operator_title">' + operator_name + '</th >'
         inlineQty += '<td headers="table_operator_commission">' + sum_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax">' + sum_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total">' + sum_row[2] + '</td>'
         inlineQty += '</tr>'
-        inlineQty += '<tr class="' + operator_id + '_row paid_row ' + odd_even + '_row">'
+        inlineQty += '<tr class="' + operator_id + '_row paid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Paid</th>'
         inlineQty += '<td headers="table_operator_commission">' + paid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax">' + paid_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total">' + paid_row[2] + '</td>'
         inlineQty += '</tr>'
-        inlineQty += '<tr class="' + operator_id + '_row unpaid_row ' + odd_even + '_row">'
+        inlineQty += '<tr class="' + operator_id + '_row unpaid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Unpaid</th>'
         inlineQty += '<td headers="table_operator_commission">' + unpaid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax">' + unpaid_row[1] + '</td>'
