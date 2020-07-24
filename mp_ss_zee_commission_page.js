@@ -24,13 +24,13 @@ function calculateCommissions() {
     var main_index = ctx.getSetting('SCRIPT', 'custscript_main_index');
 
     // Values to be calculated
-    var nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = ctx.getSetting('SCRIPT', 'custscript_nb_invoices_array');
-    var revenues_tax_array = [paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax] = ctx.getSetting('SCRIPT', 'custscript_revenues_tax_array');
-    var revenues_total_array = [paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total] = ctx.getSetting('SCRIPT', 'custscript_revenues_total_array');
-    var commissions_tax_array = [paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax] = ctx.getSetting('SCRIPT', 'custscript_commissions_tax_array');
-    var commissions_total_array = [paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total] = ctx.getSetting('SCRIPT', 'custscript_commissions_total_array');
-    var bills_id_set = ctx.getSetting('SCRIPT', 'custscript_bills_id_set');
-    var operator_dict = ctx.getSetting('SCRIPT', 'custscript_operator_dict');
+    var nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_nb_invoices_array'));
+    var revenues_tax_array = [paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_revenues_tax_array'));
+    var revenues_total_array = [paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_revenues_total_array'));
+    var commissions_tax_array = [paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_commissions_tax_array'));
+    var commissions_total_array = [paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_commissions_total_array'));
+    var bills_id_set = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_bills_id_set'));
+    var operator_dict = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_operator_dict'));
 
     var billResultSet = loadBillSearch(zee_id, date_from, date_to);
     var billResultArray = billResultSet.getResults(main_index, main_index + 1000);
@@ -46,13 +46,13 @@ function calculateCommissions() {
                 date_from: date_from,
                 date_to: date_to,
                 main_index: main_index + index,
-                nb_invoices_array: nb_invoices_array,
-                revenues_tax_array: revenues_tax_array,
-                revenues_total_array: revenues_total_array,
-                commissions_tax_array: commissions_tax_array,
-                commissions_total_array: commissions_total_array,
-                bills_id_set: bills_id_set,
-                operator_dict: operator_dict
+                nb_invoices_array: JSON.stringify(nb_invoices_array),
+                revenues_tax_array: JSON.stringify(revenues_tax_array),
+                revenues_total_array: JSON.stringify(revenues_total_array),
+                commissions_tax_array: JSON.stringify(commissions_tax_array),
+                commissions_total_array: JSON.stringify(commissions_total_array),
+                bills_id_set: JSON.stringify(bills_id_set),
+                operator_dict: JSON.stringify(operator_dict)
             };
 
             reschedule = rescheduleScript(prev_inv_deploy, adhoc_inv_deploy, params);
