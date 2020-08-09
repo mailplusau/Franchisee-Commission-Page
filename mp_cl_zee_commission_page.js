@@ -110,18 +110,38 @@ function loadCommissionTable() {
     if (!isNullorEmpty(zee_id)) {
         var billResultSet = loadBillSearch(zee_id, date_from, date_to);
 
-        /*
-        var nb_paid_services = 0;
-        var nb_unpaid_services = 0;
-        var nb_paid_products = 0;
-        var nb_unpaid_products = 0;
-        */
+        var nb_paid_services = 0,
+            nb_unpaid_services = 0,
+            nb_paid_products = 0,
+            nb_unpaid_products = 0;
 
         // Just to verify
-        var paid_services_bill = '';
-        var unpaid_services_bill = '';
-        var paid_products_bill = '';
-        var unpaid_products_bill = '';
+        var paid_services_bill = '',
+            unpaid_services_bill = '',
+            paid_products_bill = '',
+            unpaid_products_bill = '';
+
+        // Define vars
+        // Paid services
+        var paid_services_revenues_tax = null,
+            paid_services_revenues_total = null,
+            paid_services_commissions_tax = null,
+            paid_services_commissions_total = null;
+        // Unpaid services
+        var unpaid_services_revenues_tax = null,
+            unpaid_services_revenues_total = null,
+            unpaid_services_commissions_tax = null,
+            unpaid_services_commissions_total = null;
+        // Paid products
+        var paid_products_revenues_tax = null,
+            paid_products_revenues_total = null,
+            paid_products_commissions_tax = null,
+            paid_products_commissions_total = null;
+        // Unpaid products
+        var unpaid_products_revenues_tax = null,
+            unpaid_products_revenues_total = null,
+            unpaid_products_commissions_tax = null,
+            unpaid_products_commissions_total = null;
 
         /*
         // Revenues tax
@@ -285,10 +305,10 @@ function loadCommissionTable() {
             });
         }
 
-        var paid_services_row = [paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions_tax, paid_services_commissions_total];
-        var unpaid_services_row = [unpaid_services_revenues_tax, unpaid_services_revenues_total, unpaid_services_commissions_tax, unpaid_services_commissions_total];
-        var paid_products_row = [paid_products_revenues_tax, paid_products_revenues_total, paid_products_commissions_tax, paid_products_commissions_total];
-        var unpaid_products_row = [unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions_tax, unpaid_products_commissions_total];
+        paid_services_row = [paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions_tax, paid_services_commissions_total];
+        unpaid_services_row = [unpaid_services_revenues_tax, unpaid_services_revenues_total, unpaid_services_commissions_tax, unpaid_services_commissions_total];
+        paid_products_row = [paid_products_revenues_tax, paid_products_revenues_total, paid_products_commissions_tax, paid_products_commissions_total];
+        unpaid_products_row = [unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions_tax, unpaid_products_commissions_total];
 
         // Calculate Revenue and Commission without GST
         paid_services_row = [paid_services_revenues, paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions, paid_services_commissions_tax, paid_services_commissions_total] = calculateWithoutTax(paid_services_row);
