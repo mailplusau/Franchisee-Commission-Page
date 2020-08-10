@@ -182,10 +182,22 @@ function calculateCommissions() {
             commissions_tax_array = [paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax];
             commissions_total_array = [paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total];
         }
-    }
-    
+    });
+
     // Save results in a custom record
-    )
+    var zeeCommissionPageRecord = nlapiCreateRecord('customrecord_zee_commission_page');
+    zeeCommissionPageRecord.setFieldValue('custrecord_zee_id', zee_id);
+    zeeCommissionPageRecord.setFieldValue('custrecord_date_from', date_from);
+    zeeCommissionPageRecord.setFieldValue('custrecord_date_to', date_to);
+    zeeCommissionPageRecord.setFieldValue('custrecord_main_index', main_index + index);
+    zeeCommissionPageRecord.setFieldValue('custrecord_nb_invoices_array', JSON.stringify(nb_invoices_array));
+    zeeCommissionPageRecord.setFieldValue('custrecord_revenues_tax_array', JSON.stringify(revenues_tax_array));
+    zeeCommissionPageRecord.setFieldValue('custrecord_revenues_total_array', JSON.stringify(revenues_total_array));
+    zeeCommissionPageRecord.setFieldValue('custrecord_commissions_tax_array', JSON.stringify(commissions_tax_array));
+    zeeCommissionPageRecord.setFieldValue('custrecord_commissions_total_array', JSON.stringify(commissions_total_array));
+    zeeCommissionPageRecord.setFieldValue('custrecord_bills_id_set', JSON.stringify(bills_id_set));
+    zeeCommissionPageRecord.setFieldValue('custrecord_operator_dict', JSON.stringify(operator_dict));
+    nlapiSubmitRecord(zeeCommissionPageRecord);
 }
 
 /**
