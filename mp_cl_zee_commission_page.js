@@ -23,6 +23,7 @@ var userRole = parseInt(ctx.getRole());
 if (userRole == 1000) {
     var zee_id = ctx.getUser();
 }
+var load_record_interval;
 
 // For test
 /*
@@ -107,7 +108,11 @@ function loadCommissionTable() {
     var date_from = dateSelected2DateFilter($('#date_from').val());
     var date_to = dateSelected2DateFilter($('#date_to').val());
 
-    loadZCPRecord(zee_id, date_from, date_to);
+    if (!isNullorEmpty(zee_id)) {
+        clearInterval(load_record_interval);
+        load_record_interval = setInterval(loadZCPRecord, 15000, zee_id, date_from, date_to);
+    }
+    console.log('load_record_interval in loadCommissionTable', load_record_interval);
 }
 
 /**
@@ -118,6 +123,7 @@ function loadCommissionTable() {
  * @param {String} date_to 
  */
 function loadZCPRecord(zee_id, date_from, date_to) {
+    console.log('load_record_interval in loadZCPRecord', load_record_interval);
     var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
     var zcpFilterExpression = new nlobjSearchFilter('name', null, 'is', zcp_record_name);
     var zcp_columns = [];
@@ -152,6 +158,7 @@ function loadZCPRecord(zee_id, date_from, date_to) {
  * @param {Object}  operator_dict 
  */
 function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict) {
+    console.log('load_record_interval in displayZCPResults', load_record_interval);
     // Define vars
     var nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products;
     var paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax;
@@ -244,6 +251,7 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
     }
 
     $('.commission_table').removeClass('hide');
+    clearInterval(load_record_interval);
 }
 
 /**
