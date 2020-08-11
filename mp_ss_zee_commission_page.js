@@ -15,6 +15,7 @@
 var adhoc_inv_deploy = 'customdeploy_ss_zee_commission_page';
 var prev_inv_deploy = null;
 var ctx = nlapiGetContext();
+var index_in_callback;
 
 function calculateCommissions() {
     // Script parameters
@@ -39,6 +40,7 @@ function calculateCommissions() {
     var billResultArray = billResultSet.getResults(main_index, main_index + 1000);
 
     billResultArray.forEach(function (billResult, index) {
+        index_in_callback = index;
 
         // If the limit of governance units is almost reached,
         // the script is rescheduled and the results will be iterated from this element.
@@ -67,8 +69,8 @@ function calculateCommissions() {
 
         // Make sure each bill is used only once
         var bill_id = billResult.getValue('tranid');
-        if (!bills_id_set.has(bill_id)) {
-            bills_id_set.add(bill_id);
+        if (bills_id_set.indexOf(bill_id) == -1) {
+            bills_id_set.push(bill_id);
 
             var operator_id = '';
 
@@ -85,20 +87,6 @@ function calculateCommissions() {
             // Commissions
             var billing_amount = parseFloat(billResult.getValue('amount'));
             var tax_commission = Math.abs(parseFloat(billResult.getValue('taxtotal')));
-
-            /*
-            // Just to verify
-            var billJson = {
-                invoice_number: invoice_number,
-                bill_number: bill_number,
-                invoice_type: invoice_type,
-                invoice_status: invoice_status,
-                total_amount: total_amount,
-                revenue_tax: revenue_tax,
-                billing_amount: billing_amount,
-                tax_commission: tax_commission
-            };
-            */
 
             if (isNullorEmpty(invoice_type)) { // Services
 
@@ -188,11 +176,13 @@ function calculateCommissions() {
     });
 
     // Save results in a custom record
+    var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
     var zeeCommissionPageRecord = nlapiCreateRecord('customrecord_zee_commission_page');
+    zeeCommissionPageRecord.setFieldValue('altname', zcp_record_name);
     zeeCommissionPageRecord.setFieldValue('custrecord_zee_id', zee_id);
     zeeCommissionPageRecord.setFieldValue('custrecord_date_from', date_from);
     zeeCommissionPageRecord.setFieldValue('custrecord_date_to', date_to);
-    zeeCommissionPageRecord.setFieldValue('custrecord_main_index', main_index + index);
+    zeeCommissionPageRecord.setFieldValue('custrecord_main_index', main_index + index_in_callback);
     zeeCommissionPageRecord.setFieldValue('custrecord_nb_invoices_array', JSON.stringify(nb_invoices_array));
     zeeCommissionPageRecord.setFieldValue('custrecord_revenues_tax_array', JSON.stringify(revenues_tax_array));
     zeeCommissionPageRecord.setFieldValue('custrecord_revenues_total_array', JSON.stringify(revenues_total_array));
@@ -212,18 +202,15 @@ function calculateCommissions() {
  */
 function loadBillSearch(zee_id, date_from, date_to) {
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
-    var billFilterExpression = billSearch.getFilterExpression();
-    billFilterExpression.push('AND', ['custbody_related_franchisee', 'is', zee_id]);
+    billSearch.addFilter(new nlobjSearchFilter('custbody_related_franchisee', null, 'is', zee_id));
 
     if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'within', date_from, date_to]);
+        billSearch.addFilter(new nlobjSearchFilter('trandate', null, 'within', date_from, date_to));
     } else if (!isNullorEmpty(date_from) && isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'after', date_from]);
+        billSearch.addFilter(new nlobjSearchFilter('trandate', null, 'after', date_from));
     } else if (isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'before', date_to]);
+        billSearch.addFilter(new nlobjSearchFilter('trandate', null, 'before', date_to));
     }
-    console.log('billFilterExpression : ', billFilterExpression);
-    billSearch.setFilterExpression(billFilterExpression);
     var billResultSet = billSearch.runSearch();
 
     return billResultSet;
@@ -236,9 +223,7 @@ function loadBillSearch(zee_id, date_from, date_to) {
  */
 function loadBarcodesSearch(invoice_id) {
     var barcodesSearch = nlapiLoadSearch('customrecord_customer_product_stock', 'customsearch_zee_commission_page_2');
-    var barcodeFilterExpression = barcodesSearch.getFilterExpression();
-    barcodeFilterExpression.push('AND', ['custrecord_prod_stock_invoice', 'is', invoice_id]);
-    barcodesSearch.setFilterExpression(barcodeFilterExpression);
+    barcodesSearch.addFilter(new nlobjSearchFilter('custrecord_prod_stock_invoice', null, 'is', invoice_id));
     var barcodeResultSet = barcodesSearch.runSearch();
 
     return barcodeResultSet;

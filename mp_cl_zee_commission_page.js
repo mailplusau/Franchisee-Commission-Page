@@ -20,8 +20,9 @@ if (nlapiGetContext().getEnvironment() == "SANDBOX") {
 
 var ctx = nlapiGetContext();
 var userRole = parseInt(ctx.getRole());
+var zee_id = '';
 if (userRole == 1000) {
-    var zee_id = ctx.getUser();
+    zee_id = ctx.getUser();
 }
 var load_record_interval;
 
@@ -35,7 +36,7 @@ zee_name = 'Alexandria';
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
 
-    var zee_id = nlapiGetFieldValue('custpage_zee_id');
+    zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
     console.log('Parameters on pageInit : ', {
@@ -66,7 +67,6 @@ function pageInit() {
 
     $('#zee_dropdown').change(function () {
         showLoading();
-        // loadCommissionTable();
         reloadPageWithParams();
         hideLoading();
     });
@@ -76,9 +76,7 @@ function pageInit() {
         hideLoading();
     });
     $('#date_from, #date_to').change(function () {
-        console.log('Reload page with params in #date_from, #date_to change');
         showLoading();
-        // loadCommissionTable();
         reloadPageWithParams();
         hideLoading();
         $('#period_dropdown option:selected').attr('selected', false);
@@ -107,8 +105,11 @@ function hideLoading() {
     $('.content_section').removeClass('hide');
 }
 
+/**
+ * Triggered when a new Franchisee is selected,
+ * or when a new date is selected, and there is a selected Franchisee.
+ */
 function reloadPageWithParams() {
-
     var zee_id = $('#zee_dropdown option:selected').val();
     var date_from = dateISOToNetsuite($('#date_from').val());
     var date_to = dateISOToNetsuite($('#date_to').val());
@@ -130,18 +131,24 @@ function reloadPageWithParams() {
 function loadCommissionTable() {
     $('#operator_results').empty();
 
-    var zee_id = $('#zee_dropdown option:selected').val();
-    nlapiSetFieldValue('custpage_zee_id', zee_id);
+    // Get parameters
+    var zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
+    var date_from = nlapiGetFieldValue('custpage_date_from');
+    var date_to = nlapiGetFieldValue('custpage_date_to');
+
+    // Display parameters
+    // $('#zee_dropdown [value=' + zee_id + ']').attr('selected', true);
+    // $('#date_from').val(dateNetsuiteToISO(date_from));
+    // $('#date_to').val(dateNetsuiteToISO(date_to));
+
     var zee_name = $('#zee_dropdown option:selected').text();
     $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission Page');
-    var date_from = dateISOToNetsuite($('#date_from').val());
-    var date_to = dateISOToNetsuite($('#date_to').val());
 
     if (!isNullorEmpty(zee_id)) {
         clearInterval(load_record_interval);
         load_record_interval = setInterval(loadZCPRecord, 15000, zee_id, date_from, date_to);
     }
-    console.log('load_record_interval in loadCommissionTable', load_record_interval);
+    console.log('load_record_interval in loadCommissionTable', load_record_interval, 'with parameters zee_id : ', zee_id, 'date_from : ', date_from, 'date_to : ', date_to);
 }
 
 /**
@@ -460,49 +467,7 @@ function selectDate() {
     }
     $('#date_from').val(date_from);
     $('#date_to').val(date_to);
-    // loadCommissionTable();
     reloadPageWithParams();
-}
-
-/**
- * Load the result set of the bill records linked to the Franchisee.
- * @param   {String}                zee_id
- * @param   {String}                date_from
- * @param   {String}                date_to
- * @return  {nlobjSearchResultSet} billResultSet
- */
-function loadBillSearch(zee_id, date_from, date_to) {
-    var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
-    var billFilterExpression = billSearch.getFilterExpression();
-    billFilterExpression.push('AND', ['custbody_related_franchisee', 'is', zee_id]);
-
-    if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'within', date_from, date_to]);
-    } else if (!isNullorEmpty(date_from) && isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'after', date_from]);
-    } else if (isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'before', date_to]);
-    }
-    console.log('billFilterExpression : ', billFilterExpression);
-    billSearch.setFilterExpression(billFilterExpression);
-    var billResultSet = billSearch.runSearch();
-
-    return billResultSet;
-}
-
-/**
- * Loads the barcode records related to an invoice.
- * @param   {Number} invoice_id
- * @return  {nlobjSearchResultSet} barcodeResultSet
- */
-function loadBarcodesSearch(invoice_id) {
-    var barcodesSearch = nlapiLoadSearch('customrecord_customer_product_stock', 'customsearch_zee_commission_page_2');
-    var barcodeFilterExpression = barcodesSearch.getFilterExpression();
-    barcodeFilterExpression.push('AND', ['custrecord_prod_stock_invoice', 'is', invoice_id]);
-    barcodesSearch.setFilterExpression(barcodeFilterExpression);
-    var barcodeResultSet = barcodesSearch.runSearch();
-
-    return barcodeResultSet;
 }
 
 /**
@@ -560,12 +525,12 @@ function commissionTable() {
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
     inlineQty += '<th scope="col" id="table_nb_invoices">Number of invoices</th>';
-    inlineQty += '<th scope="col" id="table_revenue">Revenue</th>';
+    inlineQty += '<th scope="col" id="table_revenue">Revenue (excl. GST)</th>';
     inlineQty += '<th scope="col" id="table_revenue_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_revenue_total">Revenue (Total)</th>';
-    inlineQty += '<th scope="col" id="table_commission">Commission</th>';
+    inlineQty += '<th scope="col" id="table_revenue_total">Revenue (incl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_commission">Commission (excl. GST)</th>';
     inlineQty += '<th scope="col" id="table_commission_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_commission_total">Commission (Total)</th>';
+    inlineQty += '<th scope="col" id="table_commission_total">Commission (incl. GST)</th>';
     inlineQty += '</tr>';
     inlineQty += '</thead>';
     inlineQty += '<tbody>';
@@ -679,52 +644,12 @@ function operatorTable(operator_dict) {
 }
 
 /**
- * Converts the date string in the "date_to" and "date_from" fields to a correct format for the filter expressions.
- * @param   {String}    date_selected   ex: "2020-06-04"
- * @returns {String}    date_filter     ex: "04/06/2020"
- */
-/*
-function dateSelected2DateFilter(date_selected) {
-    var date_filter = '';
-    if (!isNullorEmpty(date_selected)) {
-        // date_selected = "2020-06-04"
-        var date_array = date_selected.split('-');
-        // date_array = ["2020", "06", "04"]
-        var year = date_array[0];
-        var month = date_array[1];
-        var day = date_array[2];
-        date_filter = day + '/' + month + '/' + year;
-    }
-
-    return date_filter;
-}
-*/
-
-/**
- * Converts the date string in the "date_to" and "date_from" fields to Javascript Date objects.
- * @param   {String}    date_selected   ex: "2020-06-04"
- * @returns {Date}      date            ex: Thu Jun 04 2020 00:00:00 GMT+1000 (Australian Eastern Standard Time)
- */
-/*
-function dateSelected2Date(date_selected) {
-    // date_selected = "2020-06-04"
-    var date_array = date_selected.split('-');
-    // date_array = ["2020", "06", "04"]
-    var year = date_array[0];
-    var month = date_array[1] - 1;
-    var day = date_array[2];
-    var date = new Date(year, month, day);
-    return date;
-}
-*/
-
-/**
  * @param   {String} date_netsuite  "1/6/2020"
  * @returns {String} date_iso       "2020-06-01"
  */
 function dateNetsuiteToISO(date_netsuite) {
     var date_iso = '';
-    if (!isNullorEmpty(date_iso)) {
+    if (!isNullorEmpty(date_netsuite)) {
         var date = nlapiStringToDate(date_netsuite);
         var date_day = date.getDate();
         var date_month = date.getMonth();
