@@ -168,7 +168,8 @@ function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
     var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
     var zcpFilterExpression = [];
     zcpFilterExpression[0] = new nlobjSearchFilter('name', null, 'is', zcp_record_name);
-    zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
+    zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_zee_id', null, 'is', zee_id);
+    zcpFilterExpression[2] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
     var zcp_columns = [];
     zcp_columns[0] = new nlobjSearchColumn('custrecord_nb_invoices_array');
     zcp_columns[1] = new nlobjSearchColumn('custrecord_revenues_tax_array');
