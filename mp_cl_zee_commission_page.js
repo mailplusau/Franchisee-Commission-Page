@@ -165,22 +165,26 @@ function loadCommissionTable() {
  */
 function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
     console.log('load_record_interval in loadZCPRecord', load_record_interval);
-    var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
     var zcpFilterExpression = [];
-    zcpFilterExpression[0] = new nlobjSearchFilter('name', null, 'is', zcp_record_name);
-    zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_zee_id', null, 'is', zee_id);
-    zcpFilterExpression[2] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
-    var zcp_columns = [];
-    zcp_columns[0] = new nlobjSearchColumn('custrecord_nb_invoices_array');
-    zcp_columns[1] = new nlobjSearchColumn('custrecord_revenues_tax_array');
-    zcp_columns[2] = new nlobjSearchColumn('custrecord_revenues_total_array');
-    zcp_columns[3] = new nlobjSearchColumn('custrecord_commissions_tax_array');
-    zcp_columns[4] = new nlobjSearchColumn('custrecord_commissions_total_array');
-    zcp_columns[5] = new nlobjSearchColumn('custrecord_operator_dict');
+    if (!isNullorEmpty(date_from)) {
+        zcpFilterExpression[0] = new nlobjSearchFilter('custrecord_date_from', null, 'on', date_from);
+    } else {
+        zcpFilterExpression[0] = new nlobjSearchFilter('custrecord_date_from', null, 'isempty', '');
+    }
+    if (!isNullorEmpty(date_to)) {
+        zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_date_to', null, 'on', date_to);
+    } else {
+        zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_date_to', null, 'isempty', '');
+    }
+    zcpFilterExpression[2] = new nlobjSearchFilter('custrecord_zee_id', null, 'is', zee_id);
+    zcpFilterExpression[3] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
 
-    var zcpSearchResults = nlapiSearchRecord('customrecord_zee_commission_page', null, zcpFilterExpression, zcp_columns);
-    if (!isNullorEmpty(zcpSearchResults)) {
-        var zcpRecord = zcpSearchResults[0];
+    var zcpSearch = nlapiLoadSearch('customrecord_zee_commission_page', 'customsearch_zee_commission_page_3');
+    zcpSearch.setFilters(zcpFilterExpression);
+    var zcpSearchResults = zcpSearch.runSearch();
+    var zcpSearchResult = zcpSearchResults.getResults(0, 1);
+    if (!isNullorEmpty(zcpSearchResult)) {
+        var zcpRecord = zcpSearchResult[0];
         var nb_invoices_array = JSON.parse(zcpRecord.getValue('custrecord_nb_invoices_array'));
         var revenues_tax_array = JSON.parse(zcpRecord.getValue('custrecord_revenues_tax_array'));
         var revenues_total_array = JSON.parse(zcpRecord.getValue('custrecord_revenues_total_array'));
