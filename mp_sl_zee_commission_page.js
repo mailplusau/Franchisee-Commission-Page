@@ -2,14 +2,14 @@
 * Module Description
 * 
 * NSVersion    Date                Author         
-* 1.00         2020-07-14 10:05:00 Raphael
+* 2.00         2020-07-23 15:07:00 Raphael
 *
 * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
 *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-21 11:17:00
+* @Last Modified time: 2020-07-23 15:07:00
 *
 */
 
@@ -18,7 +18,7 @@ if (nlapiGetContext().getEnvironment() == "SANDBOX") {
     baseURL = 'https://1048144-sb3.app.netsuite.com';
 }
 
-var zee_id = null;
+var zee_id = '';
 var ctx = nlapiGetContext();
 var userRole = parseInt(ctx.getRole());
 if (userRole == 1000) {
@@ -38,19 +38,42 @@ function showCommissions(request, response) {
         var zee_name = '';
         var date_from = '';
         var date_to = '';
+        var timestamp = '';
 
         // Load params
         var params = request.getParameter('custparam_params');
         if (!isNullorEmpty(params)) {
             params = JSON.parse(params);
             zee_id = parseInt(params.zee_id);
-            date_from = dateFilter2DateSelected(params.date_from);
-            date_to = dateFilter2DateSelected(params.date_to);
+            date_from = params.date_from;
+            date_to = params.date_to;
+            nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+            nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+            nlapiLogExecution('DEBUG', 'Param date_to', date_to);
         }
 
         if (!isNullorEmpty(zee_id)) {
             var zeeRecord = nlapiLoadRecord('partner', zee_id);
             var zee_name = zeeRecord.getFieldValue('companyname');
+            timestamp = Date.now().toString();
+            nlapiLogExecution('DEBUG', 'timestamp', timestamp);
+            var ss_params = {
+                custscript_zcp_zee_id: zee_id,
+                custscript_date_from: date_from,
+                custscript_date_to: date_to,
+                custscript_timestamp3: timestamp,
+                custscript_main_index: 0,
+                custscript_nb_invoices_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_revenues_tax_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_revenues_total_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_commissions_tax_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_commissions_total_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_bills_id_set: JSON.stringify([]),
+                custscript_operator_dict: JSON.stringify({})
+            };
+            nlapiLogExecution('DEBUG', 'ss_params', JSON.stringify(ss_params));
+            var status = nlapiScheduleScript('customscript_ss_zee_commission_page', 'customdeploy_ss_zee_commission_page', ss_params);
+            nlapiLogExecution('DEBUG', 'Scheduled script scheduled', status);
         }
 
         var form = nlapiCreateForm('Franchisee ' + zee_name + ' : Commissions Page');
@@ -62,35 +85,42 @@ function showCommissions(request, response) {
         inlineHtml += '<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">';
         inlineHtml += '<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>';
 
-        // Load DataTables
-        // inlineHtml += '<link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">';
-        // inlineHtml += '<script type="text/javascript" charset="utf8" src="//cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>';
-
         // Load Netsuite stylesheet and script
         inlineHtml += '<link rel="stylesheet" href="https://1048144.app.netsuite.com/core/media/media.nl?id=2060796&c=1048144&h=9ee6accfd476c9cae718&_xt=.css"/>';
         inlineHtml += '<script src="https://1048144.app.netsuite.com/core/media/media.nl?id=2060797&c=1048144&h=ef2cda20731d146b5e98&_xt=.js"></script>';
         inlineHtml += '<link type="text/css" rel="stylesheet" href="https://1048144.app.netsuite.com/core/media/media.nl?id=2090583&c=1048144&h=a0ef6ac4e28f91203dfe&_xt=.css">';
         inlineHtml += '<style>.mandatory{color:red;}</style>';
 
-        inlineHtml += franchiseeDropdownSection();
+        inlineHtml += franchiseeDropdownSection(zee_id);
         inlineHtml += periodDropdownSection(date_from, date_to);
         inlineHtml += dateFilterSection();
         inlineHtml += loadingSection();
         inlineHtml += '<div class="form-group container content_section hide">';
         inlineHtml += commissionTable();
         inlineHtml += operatorTable();
-        inlineHtml += '</div';
+        inlineHtml += '</div>';
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
+        form.addField('custpage_timestamp', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(timestamp);
         form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
-        // form.addSubmitButton('Update Ticket');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
     } else {
-        nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page', null, null);
+        var zee_id = request.getParameter('custpage_zee_id');
+        var date_from = request.getParameter('custpage_date_from');
+        var date_to = request.getParameter('custpage_date_to');
+        var timestamp = request.getParameter('custpage_timestamp');
+
+        var zcp_params = {
+            custparam_zee_id: zee_id,
+            custparam_date_from: date_from,
+            custparam_date_to: date_to,
+            custparam_timestamp: timestamp
+        }
+        nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page', null, zcp_params);
     }
 }
 
@@ -106,9 +136,10 @@ function loadingSection() {
 
 /**
  * The Franchisee dropdown list.
+ * @param   {Number}    zee_id
  * @return  {String}    inlineQty
  */
-function franchiseeDropdownSection() {
+function franchiseeDropdownSection(zee_id) {
     // The dropdown is hidden to the user if it's a Franchisee.
     if (userRole == 1000) {
         var inlineQty = '<div class="form-group container zee_dropdown_section hide">';
@@ -229,23 +260,4 @@ function operatorTable() {
     inlineQty += '</div></div></div>';
 
     return inlineQty;
-}
-
-/**
- * Converts the parameters "date_from" and "date_to" to a correct format for the date input field.
- * @param   {String}    date_filter     ex: "04/06/2020"
- * @returns {String}    date_selected   ex: "2020-06-04"
- */
-function dateFilter2DateSelected(date_filter) {
-    var date_selected = '';
-    if (!isNullorEmpty(date_filter)) {
-        // date_selected = "04/06/2020"
-        var date_array = date_filter.split('/');
-        // date_array = ["04", "06", "2020"]
-        var year = date_array[2];
-        var month = date_array[1];
-        var day = date_array[0];
-        date_selected = year + '-' + month + '-' + day;
-    }
-    return date_selected;
 }

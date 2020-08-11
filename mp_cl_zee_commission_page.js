@@ -2,14 +2,14 @@
 * Module Description
 * 
 * NSVersion    Date                Author         
-* 1.00         2020-07-14 10:05:00 Raphael
+* 2.00         2020-07-23 15:07:00 Raphael
 *
 * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
 *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-21 11:17:00
+* @Last Modified time: 2020-07-23 15:07:00
 *
 */
 
@@ -20,9 +20,11 @@ if (nlapiGetContext().getEnvironment() == "SANDBOX") {
 
 var ctx = nlapiGetContext();
 var userRole = parseInt(ctx.getRole());
+var zee_id = '';
 if (userRole == 1000) {
-    var zee_id = ctx.getUser();
+    zee_id = ctx.getUser();
 }
+var load_record_interval;
 
 // For test
 /*
@@ -34,16 +36,30 @@ zee_name = 'Alexandria';
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
 
+    var param_zee_id = nlapiGetFieldValue('custpage_zee_id');
+    if (!isNullorEmpty(param_zee_id)) {
+        zee_id = parseInt(param_zee_id);
+    }
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
+    var timestamp = nlapiGetFieldValue('custpage_timestamp');
+    console.log('Parameters on pageInit : ', {
+        'zee_id': zee_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'timestamp': timestamp
+    });
 
-    if (!isNullorEmpty(date_from)) {
-        $('#date_from').val(date_from);
+    var date_from_iso = dateNetsuiteToISO(date_from);
+    var date_to_iso = dateNetsuiteToISO(date_to);
+
+    if (!isNullorEmpty(date_from_iso)) {
+        $('#date_from').val(date_from_iso);
     }
-    if (!isNullorEmpty(date_to)) {
-        $('#date_to').val(date_to);
+    if (!isNullorEmpty(date_to_iso)) {
+        $('#date_to').val(date_to_iso);
     }
-    if (!isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+    if (!isNullorEmpty(zee_id) || !isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
         showLoading();
         loadCommissionTable();
         hideLoading();
@@ -56,7 +72,7 @@ function pageInit() {
 
     $('#zee_dropdown').change(function () {
         showLoading();
-        loadCommissionTable();
+        reloadPageWithParams();
         hideLoading();
     });
     $('#period_dropdown').change(function () {
@@ -66,7 +82,7 @@ function pageInit() {
     });
     $('#date_from, #date_to').change(function () {
         showLoading();
-        loadCommissionTable();
+        reloadPageWithParams();
         hideLoading();
         $('#period_dropdown option:selected').attr('selected', false);
     });
@@ -95,292 +111,190 @@ function hideLoading() {
 }
 
 /**
+ * Triggered when a new Franchisee is selected,
+ * or when a new date is selected, and there is a selected Franchisee.
+ */
+function reloadPageWithParams() {
+    var zee_id = $('#zee_dropdown option:selected').val();
+    var date_from = dateISOToNetsuite($('#date_from').val());
+    var date_to = dateISOToNetsuite($('#date_to').val());
+    var params = {
+        zee_id: parseInt(zee_id),
+        date_from: date_from,
+        date_to: date_to
+    };
+    params = JSON.stringify(params);
+    var upload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page') + '&custparam_params=' + encodeURIComponent(params);
+    if (!isNullorEmpty(zee_id)) {
+        window.open(upload_url, "_self", "height=750,width=650,modal=yes,alwaysRaised=yes");
+    }
+}
+
+/**
  * Triggered when a Franchisee is selected in the dropdown list.
  */
 function loadCommissionTable() {
     $('#operator_results').empty();
 
-    var zee_id = $('#zee_dropdown option:selected').val();
+    // Get parameters
+    var param_zee_id = nlapiGetFieldValue('custpage_zee_id');
+    if (!isNullorEmpty(param_zee_id)) {
+        zee_id = parseInt(param_zee_id);
+    }
+    var date_from = nlapiGetFieldValue('custpage_date_from');
+    var date_to = nlapiGetFieldValue('custpage_date_to');
+    var timestamp = nlapiGetFieldValue('custpage_timestamp');
+
     var zee_name = $('#zee_dropdown option:selected').text();
     $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission Page');
-    var date_from = dateSelected2DateFilter($('#date_from').val());
-    var date_to = dateSelected2DateFilter($('#date_to').val());
 
-    nlapiSetFieldValue('custpage_zee_id', zee_id);
     if (!isNullorEmpty(zee_id)) {
-        var billResultSet = loadBillSearch(zee_id, date_from, date_to);
-
-        var nb_paid_services = 0;
-        var nb_unpaid_services = 0;
-        var nb_paid_products = 0;
-        var nb_unpaid_products = 0;
-
-        // Just to verify
-        var paid_services_bill = '';
-        var unpaid_services_bill = '';
-        var paid_products_bill = '';
-        var unpaid_products_bill = '';
-
-        // Revenues
-        var paid_services_revenues = null;
-        var unpaid_services_revenues = null;
-        var paid_products_revenues = null;
-        var unpaid_products_revenues = null;
-        // Revenues tax
-        var paid_services_revenues_tax = null;
-        var unpaid_services_revenues_tax = null;
-        var paid_products_revenues_tax = null;
-        var unpaid_products_revenues_tax = null;
-        // Revenues tax total
-        var paid_services_revenues_total = null;
-        var unpaid_services_revenues_total = null;
-        var paid_products_revenues_total = null;
-        var unpaid_products_revenues_total = null;
-
-        // Commissions
-        var paid_services_commissions = null;
-        var unpaid_services_commissions = null;
-        var paid_products_commissions = null;
-        var unpaid_products_commissions = null;
-        // Commissions tax
-        var paid_services_commissions_tax = null;
-        var unpaid_services_commissions_tax = null;
-        var paid_products_commissions_tax = null;
-        var unpaid_products_commissions_tax = null;
-        // Commissions total
-        var paid_services_commissions_total = null;
-        var unpaid_services_commissions_total = null;
-        var paid_products_commissions_total = null;
-        var unpaid_products_commissions_total = null;
-
-        // Because the invoice_date value is retrieved, and it's an invoice related field,
-        // each result is shown three times in the billResultSet.
-        // Thus, a set is used to make sure we display each result only once.
-        var bills_id_set = new Set();
-        var operator_dict = {};
-
-        var i = 0;
-
-        if (!isNullorEmpty(billResultSet)) {
-            billResultSet.forEachResult(function (billResult) {
-                var bill_id = billResult.getValue('tranid');
-                if (!bills_id_set.has(bill_id)) {
-                    bills_id_set.add(bill_id);
-
-                    if (i == 0) {
-                        console.log('billResult : ', billResult);
-                        i += 1;
-                    }
-
-                    nlapiSetFieldValue('custpage_operator_id', '');
-
-                    var invoice_number = billResult.getText('custbody_invoice_reference');
-                    var invoice_id = billResult.getValue('custbody_invoice_reference');
-                    var bill_number = billResult.getValue('invoicenum');
-                    var invoice_type = billResult.getValue('custbody_related_inv_type');
-                    var invoice_status = billResult.getValue('statusref');
-
-                    // Revenues
-                    var total_amount = parseFloat(billResult.getValue('custbody_invoicetotal'));
-                    var revenue_tax = parseFloat(billResult.getValue('custbody_taxtotal'));
-
-                    // Commissions
-                    var billing_amount = parseFloat(billResult.getValue('amount'));
-                    var tax_commission = Math.abs(parseFloat(billResult.getValue('taxtotal')));
-
-                    // Just to verify
-                    var billJson = {
-                        invoice_number: invoice_number,
-                        bill_number: bill_number,
-                        invoice_type: invoice_type,
-                        invoice_status: invoice_status,
-                        total_amount: total_amount,
-                        revenue_tax: revenue_tax,
-                        billing_amount: billing_amount,
-                        tax_commission: tax_commission
-                    };
-
-                    if (isNullorEmpty(invoice_type)) {
-                        // Services
-                        switch (invoice_status) {
-                            case 'open':        // unpaid
-                                unpaid_services_revenues_tax += revenue_tax;
-                                unpaid_services_commissions_tax += tax_commission;
-                                unpaid_services_revenues_total += total_amount;
-                                unpaid_services_commissions_total += billing_amount;
-                                nb_unpaid_services += 1;
-                                unpaid_services_bill = billJson; // Just to verify
-                                break;
-
-                            case 'paidInFull':  // paid
-                                paid_services_revenues_tax += revenue_tax;
-                                paid_services_commissions_tax += tax_commission;
-                                paid_services_revenues_total += total_amount;
-                                paid_services_commissions_total += billing_amount;
-                                nb_paid_services += 1;
-                                paid_services_bill = billJson; // Just to verify
-                                break;
-
-                            default:
-                                break;
-                        }
-                    } else {
-                        // Products
-
-                        // Operator dictionnary
-                        var barcodeResultSet = loadBarcodesSearch(invoice_id);
-                        barcodeResultSet.forEachResult(function (barcodeResult) {
-                            var operator_id = barcodeResult.getValue('custrecord_cust_prod_stock_operator');
-                            var operator_name = barcodeResult.getText('custrecord_cust_prod_stock_operator');
-                            nlapiSetFieldValue('custpage_operator_id', operator_id);
-
-
-                            if (isNullorEmpty(operator_id)) {
-                                console.log('barcodeResult : ', barcodeResult);
-                            }
-
-                            if (operator_dict[operator_id] == undefined) {
-                                operator_dict[operator_id] = {
-                                    name: operator_name,
-                                    total_paid_amount: 0,
-                                    tax_paid_amount: 0,
-                                    total_unpaid_amount: 0,
-                                    tax_unpaid_amount: 0
-                                };
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        })
-
-                        var operator_id = nlapiGetFieldValue('custpage_operator_id');
-                        switch (invoice_status) {
-                            case 'open':        // unpaid
-                                unpaid_products_revenues_tax += revenue_tax;
-                                unpaid_products_commissions_tax += tax_commission;
-                                unpaid_products_revenues_total += total_amount;
-                                unpaid_products_commissions_total += billing_amount;
-                                if (!isNullorEmpty(operator_id)) {
-                                    operator_dict[operator_id].total_unpaid_amount += billing_amount;
-                                    operator_dict[operator_id].tax_unpaid_amount += tax_commission;
-                                }
-                                nb_unpaid_products += 1;
-                                unpaid_products_bill = billJson; // Just to verify
-                                break;
-
-                            case 'paidInFull':  // paid
-                                paid_products_revenues_tax += revenue_tax;
-                                paid_products_commissions_tax += tax_commission;
-                                paid_products_revenues_total += total_amount;
-                                paid_products_commissions_total += billing_amount;
-                                if (!isNullorEmpty(operator_id)) {
-                                    operator_dict[operator_id].total_paid_amount += billing_amount;
-                                    operator_dict[operator_id].tax_paid_amount += tax_commission;
-                                }
-                                nb_paid_products += 1;
-                                paid_products_bill = billJson; // Just to verify
-                                break;
-
-                            default:
-                                break;
-                        }
-                    }
-                }
-
-                return true;
-            });
-        }
-
-        var paid_services_row = [paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions_tax, paid_services_commissions_total];
-        var unpaid_services_row = [unpaid_services_revenues_tax, unpaid_services_revenues_total, unpaid_services_commissions_tax, unpaid_services_commissions_total];
-        var paid_products_row = [paid_products_revenues_tax, paid_products_revenues_total, paid_products_commissions_tax, paid_products_commissions_total];
-        var unpaid_products_row = [unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions_tax, unpaid_products_commissions_total];
-
-        // Calculate Revenue and Commission without GST
-        paid_services_row = [paid_services_revenues, paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions, paid_services_commissions_tax, paid_services_commissions_total] = calculateWithoutTax(paid_services_row);
-        unpaid_services_row = [unpaid_services_revenues, unpaid_services_revenues_tax, unpaid_services_revenues_total, unpaid_services_commissions, unpaid_services_commissions_tax, unpaid_services_commissions_total] = calculateWithoutTax(unpaid_services_row);
-        paid_products_row = [paid_products_revenues, paid_products_revenues_tax, paid_products_revenues_total, paid_products_commissions, paid_products_commissions_tax, paid_products_commissions_total] = calculateWithoutTax(paid_products_row);
-        unpaid_products_row = [unpaid_products_revenues, unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions, unpaid_products_commissions_tax, unpaid_products_commissions_total] = calculateWithoutTax(unpaid_products_row);
-
-        // Calculate Sum rows (Services, Products, Paid, Unpaid and Total)
-        var services_row = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = sum2arrays(paid_services_row, unpaid_services_row);
-        var products_row = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = sum2arrays(paid_products_row, unpaid_products_row);
-        var paid_row = [paid_revenues, paid_revenues_tax, paid_revenues_total, paid_commissions, paid_commissions_tax, paid_commissions_total] = sum2arrays(paid_services_row, paid_products_row);
-        var unpaid_row = [unpaid_revenues, unpaid_revenues_tax, unpaid_revenues_total, unpaid_commissions, unpaid_commissions_tax, unpaid_commissions_total] = sum2arrays(unpaid_services_row, unpaid_products_row);
-        var total_row = [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = sum2arrays(unpaid_row, paid_row);
-
-        // Convert Numbers to formatted currency strings.
-        paid_services_row = paid_services_row.map(financial);
-        unpaid_services_row = unpaid_services_row.map(financial);
-        paid_products_row = paid_products_row.map(financial);
-        unpaid_products_row = unpaid_products_row.map(financial);
-        services_row = services_row.map(financial);
-        products_row = products_row.map(financial);
-        paid_row = paid_row.map(financial);
-        unpaid_row = unpaid_row.map(financial);
-        total_row = total_row.map(financial);
-
-        // Add number of invoices per category at the beginning of each row
-        paid_services_row = [nb_paid_services].concat(paid_services_row);
-        unpaid_services_row = [nb_unpaid_services].concat(unpaid_services_row);
-        paid_products_row = [nb_paid_products].concat(paid_products_row);
-        unpaid_products_row = [nb_unpaid_products].concat(unpaid_products_row);
-        services_row = [nb_paid_services + nb_unpaid_services].concat(services_row);
-        products_row = [nb_paid_products + nb_unpaid_products].concat(products_row);
-        paid_row = [nb_paid_services + nb_paid_products].concat(paid_row);
-        unpaid_row = [nb_unpaid_services + nb_unpaid_products].concat(unpaid_row);
-        total_row = [nb_paid_services + nb_paid_products + nb_unpaid_services + nb_unpaid_products].concat(total_row);
-
-        console.log('nb_paid_services : ', nb_paid_services);
-        console.log('paid_services_bill : ', paid_services_bill);
-
-        console.log('nb_unpaid_services : ', nb_unpaid_services);
-        console.log('unpaid_services_bill : ', unpaid_services_bill);
-
-        console.log('nb_paid_products : ', nb_paid_products);
-        console.log('paid_products_bill : ', paid_products_bill);
-
-        console.log('nb_unpaid_products : ', nb_unpaid_products);
-        console.log('unpaid_products_bill : ', unpaid_products_bill);
-
-        // Total
-        var total_selector = '#commission_table tbody tr.total_row.sum_row';
-        setRow(total_selector, total_row);
-        // Total (paid)
-        var paid_total_selector = '#commission_table tbody tr.total_row.paid_row';
-        setRow(paid_total_selector, paid_row);
-        // Total (unpaid)
-        var unpaid_total_selector = '#commission_table tbody tr.total_row.unpaid_row';
-        setRow(unpaid_total_selector, unpaid_row);
-
-        // Services
-        var services_selector = '#commission_table tbody tr.services_row.sum_row';
-        setRow(services_selector, services_row);
-        // Services (paid)
-        var paid_services_selector = '#commission_table tbody tr.services_row.paid_row';
-        setRow(paid_services_selector, paid_services_row);
-        // Services (unpaid)
-        var unpaid_services_selector = '#commission_table tbody tr.services_row.unpaid_row';
-        setRow(unpaid_services_selector, unpaid_services_row);
-
-        // Products
-        var products_selector = '#commission_table tbody tr.products_row.sum_row';
-        setRow(products_selector, products_row);
-        // Products (paid)
-        var paid_products_selector = '#commission_table tbody tr.products_row.paid_row';
-        setRow(paid_products_selector, paid_products_row);
-        // Products (unpaid)
-        var unpaid_products_selector = '#commission_table tbody tr.products_row.unpaid_row';
-        setRow(unpaid_products_selector, unpaid_products_row);
-
-        if (Object.keys(operator_dict).length > 0) {
-            inlineHtmlOperatorTable = operatorTable(operator_dict);
-            $('div.col-xs-12.operator_table_div').html(inlineHtmlOperatorTable);
-            $('.operator_table').removeClass('hide');
-        }
-
-        $('.commission_table').removeClass('hide');
+        clearInterval(load_record_interval);
+        load_record_interval = setInterval(loadZCPRecord, 15000, zee_id, date_from, date_to, timestamp);
     }
+    console.log('load_record_interval in loadCommissionTable', load_record_interval, 'with parameters zee_id :', zee_id, 'date_from :', date_from, 'date_to :', date_to, 'timestamp :', timestamp);
+}
+
+/**
+ * "ZCP record" stands for "Zee Commission Page record". ('customrecord_zee_commission_page')
+ * This record contains the results of the search, and is calculated with the scheduled script 'mp_ss_zee_commission_page'.
+ * @param {Number} zee_id 
+ * @param {String} date_from 
+ * @param {String} date_to
+ * @param {Number} timestamp
+ */
+function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
+    console.log('load_record_interval in loadZCPRecord', load_record_interval);
+    var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
+    var zcpFilterExpression = [];
+    zcpFilterExpression[0] = new nlobjSearchFilter('name', null, 'is', zcp_record_name);
+    zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
+    var zcp_columns = [];
+    zcp_columns[0] = new nlobjSearchColumn('custrecord_nb_invoices_array');
+    zcp_columns[1] = new nlobjSearchColumn('custrecord_revenues_tax_array');
+    zcp_columns[2] = new nlobjSearchColumn('custrecord_revenues_total_array');
+    zcp_columns[3] = new nlobjSearchColumn('custrecord_commissions_tax_array');
+    zcp_columns[4] = new nlobjSearchColumn('custrecord_commissions_total_array');
+    zcp_columns[5] = new nlobjSearchColumn('custrecord_operator_dict');
+
+    var zcpSearchResults = nlapiSearchRecord('customrecord_zee_commission_page', null, zcpFilterExpression, zcp_columns);
+    if (!isNullorEmpty(zcpSearchResults)) {
+        var zcpRecord = zcpSearchResults[0];
+        var nb_invoices_array = JSON.parse(zcpRecord.getValue('custrecord_nb_invoices_array'));
+        var revenues_tax_array = JSON.parse(zcpRecord.getValue('custrecord_revenues_tax_array'));
+        var revenues_total_array = JSON.parse(zcpRecord.getValue('custrecord_revenues_total_array'));
+        var commissions_tax_array = JSON.parse(zcpRecord.getValue('custrecord_commissions_tax_array'));
+        var commissions_total_array = JSON.parse(zcpRecord.getValue('custrecord_commissions_total_array'));
+        var operator_dict = JSON.parse(zcpRecord.getValue('custrecord_operator_dict'));
+
+        displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict);
+    }
+}
+
+/**
+ * Evaluates the values and displays the results
+ * @param {Array}   nb_invoices_array 
+ * @param {Array}   revenues_tax_array 
+ * @param {Array}   revenues_total_array 
+ * @param {Array}   commissions_tax_array 
+ * @param {Array}   commissions_total_array 
+ * @param {Object}  operator_dict 
+ */
+function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict) {
+    console.log('load_record_interval in displayZCPResults', load_record_interval);
+    // Define vars
+    var nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products;
+    var paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax;
+    var paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total;
+    var paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax;
+    var paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total;
+
+    // Set values
+    [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = nb_invoices_array;
+    [paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax] = revenues_tax_array;
+    [paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total] = revenues_total_array;
+    [paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax] = commissions_tax_array;
+    [paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total] = commissions_total_array;
+
+    // Transpose arrays
+    var paid_services_row = [paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions_tax, paid_services_commissions_total];
+    var unpaid_services_row = [unpaid_services_revenues_tax, unpaid_services_revenues_total, unpaid_services_commissions_tax, unpaid_services_commissions_total];
+    var paid_products_row = [paid_products_revenues_tax, paid_products_revenues_total, paid_products_commissions_tax, paid_products_commissions_total];
+    var unpaid_products_row = [unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions_tax, unpaid_products_commissions_total];
+
+    // Calculate Revenue and Commission without GST
+    paid_services_row = [paid_services_revenues, paid_services_revenues_tax, paid_services_revenues_total, paid_services_commissions, paid_services_commissions_tax, paid_services_commissions_total] = calculateWithoutTax(paid_services_row);
+    unpaid_services_row = [unpaid_services_revenues, unpaid_services_revenues_tax, unpaid_services_revenues_total, unpaid_services_commissions, unpaid_services_commissions_tax, unpaid_services_commissions_total] = calculateWithoutTax(unpaid_services_row);
+    paid_products_row = [paid_products_revenues, paid_products_revenues_tax, paid_products_revenues_total, paid_products_commissions, paid_products_commissions_tax, paid_products_commissions_total] = calculateWithoutTax(paid_products_row);
+    unpaid_products_row = [unpaid_products_revenues, unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions, unpaid_products_commissions_tax, unpaid_products_commissions_total] = calculateWithoutTax(unpaid_products_row);
+
+    // Calculate Sum rows (Services, Products, Paid, Unpaid and Total)
+    var services_row = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = sum2arrays(paid_services_row, unpaid_services_row);
+    var products_row = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = sum2arrays(paid_products_row, unpaid_products_row);
+    var paid_row = [paid_revenues, paid_revenues_tax, paid_revenues_total, paid_commissions, paid_commissions_tax, paid_commissions_total] = sum2arrays(paid_services_row, paid_products_row);
+    var unpaid_row = [unpaid_revenues, unpaid_revenues_tax, unpaid_revenues_total, unpaid_commissions, unpaid_commissions_tax, unpaid_commissions_total] = sum2arrays(unpaid_services_row, unpaid_products_row);
+    var total_row = [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = sum2arrays(unpaid_row, paid_row);
+
+    // Convert Numbers to formatted currency strings.
+    paid_services_row = paid_services_row.map(financial);
+    unpaid_services_row = unpaid_services_row.map(financial);
+    paid_products_row = paid_products_row.map(financial);
+    unpaid_products_row = unpaid_products_row.map(financial);
+    services_row = services_row.map(financial);
+    products_row = products_row.map(financial);
+    paid_row = paid_row.map(financial);
+    unpaid_row = unpaid_row.map(financial);
+    total_row = total_row.map(financial);
+
+    // Add number of invoices per category at the beginning of each row
+    paid_services_row = [nb_paid_services].concat(paid_services_row);
+    unpaid_services_row = [nb_unpaid_services].concat(unpaid_services_row);
+    paid_products_row = [nb_paid_products].concat(paid_products_row);
+    unpaid_products_row = [nb_unpaid_products].concat(unpaid_products_row);
+    services_row = [nb_paid_services + nb_unpaid_services].concat(services_row);
+    products_row = [nb_paid_products + nb_unpaid_products].concat(products_row);
+    paid_row = [nb_paid_services + nb_paid_products].concat(paid_row);
+    unpaid_row = [nb_unpaid_services + nb_unpaid_products].concat(unpaid_row);
+    total_row = [nb_paid_services + nb_paid_products + nb_unpaid_services + nb_unpaid_products].concat(total_row);
+
+    // Total
+    var total_selector = '#commission_table tbody tr.total_row.sum_row';
+    setRow(total_selector, total_row);
+    // Total (paid)
+    var paid_total_selector = '#commission_table tbody tr.total_row.paid_row';
+    setRow(paid_total_selector, paid_row);
+    // Total (unpaid)
+    var unpaid_total_selector = '#commission_table tbody tr.total_row.unpaid_row';
+    setRow(unpaid_total_selector, unpaid_row);
+
+    // Services
+    var services_selector = '#commission_table tbody tr.services_row.sum_row';
+    setRow(services_selector, services_row);
+    // Services (paid)
+    var paid_services_selector = '#commission_table tbody tr.services_row.paid_row';
+    setRow(paid_services_selector, paid_services_row);
+    // Services (unpaid)
+    var unpaid_services_selector = '#commission_table tbody tr.services_row.unpaid_row';
+    setRow(unpaid_services_selector, unpaid_services_row);
+
+    // Products
+    var products_selector = '#commission_table tbody tr.products_row.sum_row';
+    setRow(products_selector, products_row);
+    // Products (paid)
+    var paid_products_selector = '#commission_table tbody tr.products_row.paid_row';
+    setRow(paid_products_selector, paid_products_row);
+    // Products (unpaid)
+    var unpaid_products_selector = '#commission_table tbody tr.products_row.unpaid_row';
+    setRow(unpaid_products_selector, unpaid_products_row);
+
+    if (Object.keys(operator_dict).length > 0 && isNullorEmpty(operator_dict["null"])) {
+        inlineHtmlOperatorTable = operatorTable(operator_dict);
+        $('div.col-xs-12.operator_table_div').html(inlineHtmlOperatorTable);
+        $('.operator_table').removeClass('hide');
+    }
+
+    $('.commission_table').removeClass('hide');
+    clearInterval(load_record_interval);
 }
 
 /**
@@ -392,8 +306,8 @@ function setRow(row_selector, amounts_array) {
     var [nb_invoices, revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
 
     var zee_id = $('#zee_dropdown option:selected').val();
-    var date_from = dateSelected2DateFilter($('#date_from').val());
-    var date_to = dateSelected2DateFilter($('#date_to').val());
+    var date_from = dateISOToNetsuite($('#date_from').val());
+    var date_to = dateISOToNetsuite($('#date_to').val());
     var type = 'total';
     var paid = 'all';
     var row_selector_array = row_selector.split(' ')[2].split('.');
@@ -560,48 +474,7 @@ function selectDate() {
     }
     $('#date_from').val(date_from);
     $('#date_to').val(date_to);
-    loadCommissionTable();
-}
-
-/**
- * Load the result set of the bill records linked to the Franchisee.
- * @param   {String}                zee_id
- * @param   {String}                date_from
- * @param   {String}                date_to
- * @return  {nlobjSearchResultSet} billResultSet
- */
-function loadBillSearch(zee_id, date_from, date_to) {
-    var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
-    var billFilterExpression = billSearch.getFilterExpression();
-    billFilterExpression.push('AND', ['custbody_related_franchisee', 'is', zee_id]);
-
-    if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'within', date_from, date_to]);
-    } else if (!isNullorEmpty(date_from) && isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'after', date_from]);
-    } else if (isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'before', date_to]);
-    }
-    console.log('billFilterExpression : ', billFilterExpression);
-    billSearch.setFilterExpression(billFilterExpression);
-    var billResultSet = billSearch.runSearch();
-
-    return billResultSet;
-}
-
-/**
- * Loads the barcode records related to an invoice.
- * @param   {Number} invoice_id
- * @return  {nlobjSearchResultSet} barcodeResultSet
- */
-function loadBarcodesSearch(invoice_id) {
-    var barcodesSearch = nlapiLoadSearch('customrecord_customer_product_stock', 'customsearch_zee_commission_page_2');
-    var barcodeFilterExpression = barcodesSearch.getFilterExpression();
-    barcodeFilterExpression.push('AND', ['custrecord_prod_stock_invoice', 'is', invoice_id]);
-    barcodesSearch.setFilterExpression(barcodeFilterExpression);
-    var barcodeResultSet = barcodesSearch.runSearch();
-
-    return barcodeResultSet;
+    reloadPageWithParams();
 }
 
 /**
@@ -659,12 +532,12 @@ function commissionTable() {
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
     inlineQty += '<th scope="col" id="table_nb_invoices">Number of invoices</th>';
-    inlineQty += '<th scope="col" id="table_revenue">Revenue</th>';
+    inlineQty += '<th scope="col" id="table_revenue">Revenue (excl. GST)</th>';
     inlineQty += '<th scope="col" id="table_revenue_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_revenue_total">Revenue (Total)</th>';
-    inlineQty += '<th scope="col" id="table_commission">Commission</th>';
+    inlineQty += '<th scope="col" id="table_revenue_total">Revenue (incl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_commission">Commission (excl. GST)</th>';
     inlineQty += '<th scope="col" id="table_commission_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_commission_total">Commission (Total)</th>';
+    inlineQty += '<th scope="col" id="table_commission_total">Commission (incl. GST)</th>';
     inlineQty += '</tr>';
     inlineQty += '</thead>';
     inlineQty += '<tbody>';
@@ -778,39 +651,33 @@ function operatorTable(operator_dict) {
 }
 
 /**
- * Converts the date string in the "date_to" and "date_from" fields to a correct format for the filter expressions.
- * @param   {String}    date_selected   ex: "2020-06-04"
- * @returns {String}    date_filter     ex: "04/06/2020"
+ * @param   {String} date_netsuite  "1/6/2020"
+ * @returns {String} date_iso       "2020-06-01"
  */
-function dateSelected2DateFilter(date_selected) {
-    var date_filter = '';
-    if (!isNullorEmpty(date_selected)) {
-        // date_selected = "2020-06-04"
-        var date_array = date_selected.split('-');
-        // date_array = ["2020", "06", "04"]
-        var year = date_array[0];
-        var month = date_array[1];
-        var day = date_array[2];
-        date_filter = day + '/' + month + '/' + year;
+function dateNetsuiteToISO(date_netsuite) {
+    var date_iso = '';
+    if (!isNullorEmpty(date_netsuite)) {
+        var date = nlapiStringToDate(date_netsuite);
+        var date_day = date.getDate();
+        var date_month = date.getMonth();
+        var date_year = date.getFullYear();
+        var date_utc = new Date(Date.UTC(date_year, date_month, date_day));
+        date_iso = date_utc.toISOString().split('T')[0];
     }
-
-    return date_filter;
+    return date_iso;
 }
 
 /**
- * Converts the date string in the "date_to" and "date_from" fields to Javascript Date objects.
- * @param   {String}    date_selected   ex: "2020-06-04"
- * @returns {Date}      date            ex: Thu Jun 04 2020 00:00:00 GMT+1000 (Australian Eastern Standard Time)
+ * @param   {String} date_iso       "2020-06-01"
+ * @returns {String} date_netsuite  "1/6/2020"
  */
-function dateSelected2Date(date_selected) {
-    // date_selected = "2020-06-04"
-    var date_array = date_selected.split('-');
-    // date_array = ["2020", "06", "04"]
-    var year = date_array[0];
-    var month = date_array[1] - 1;
-    var day = date_array[2];
-    var date = new Date(year, month, day);
-    return date;
+function dateISOToNetsuite(date_iso) {
+    var date_netsuite = '';
+    if (!isNullorEmpty(date_iso)) {
+        var date_utc = new Date(date_iso);
+        var date_netsuite = nlapiDateToString(date_utc);
+    }
+    return date_netsuite;
 }
 
 /**
