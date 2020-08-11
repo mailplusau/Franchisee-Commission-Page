@@ -38,6 +38,7 @@ function showCommissions(request, response) {
         var zee_name = '';
         var date_from = '';
         var date_to = '';
+        var timestamp = '';
 
         // Load params
         var params = request.getParameter('custparam_params');
@@ -54,16 +55,19 @@ function showCommissions(request, response) {
         if (!isNullorEmpty(zee_id)) {
             var zeeRecord = nlapiLoadRecord('partner', zee_id);
             var zee_name = zeeRecord.getFieldValue('companyname');
+            timestamp = Date.now().toString();
+            nlapiLogExecution('DEBUG', 'timestamp', timestamp);
             var ss_params = {
                 custscript_zcp_zee_id: zee_id,
                 custscript_date_from: date_from,
                 custscript_date_to: date_to,
+                custscript_timestamp3: timestamp,
                 custscript_main_index: 0,
-                custscript_nb_invoices_array: JSON.stringify([0,0,0,0]),
-                custscript_revenues_tax_array: JSON.stringify([0,0,0,0]),
-                custscript_revenues_total_array: JSON.stringify([0,0,0,0]),
-                custscript_commissions_tax_array: JSON.stringify([0,0,0,0]),
-                custscript_commissions_total_array: JSON.stringify([0,0,0,0]),
+                custscript_nb_invoices_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_revenues_tax_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_revenues_total_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_commissions_tax_array: JSON.stringify([0, 0, 0, 0]),
+                custscript_commissions_total_array: JSON.stringify([0, 0, 0, 0]),
                 custscript_bills_id_set: JSON.stringify([]),
                 custscript_operator_dict: JSON.stringify({})
             };
@@ -100,6 +104,7 @@ function showCommissions(request, response) {
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
+        form.addField('custpage_timestamp', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(timestamp);
         form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
@@ -107,11 +112,13 @@ function showCommissions(request, response) {
         var zee_id = request.getParameter('custpage_zee_id');
         var date_from = request.getParameter('custpage_date_from');
         var date_to = request.getParameter('custpage_date_to');
+        var timestamp = request.getParameter('custpage_timestamp');
 
         var zcp_params = {
             custparam_zee_id: zee_id,
             custparam_date_from: date_from,
-            custparam_date_to: date_to
+            custparam_date_to: date_to,
+            custparam_timestamp: timestamp
         }
         nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page', null, zcp_params);
     }

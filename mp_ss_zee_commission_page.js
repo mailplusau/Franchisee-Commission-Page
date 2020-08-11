@@ -29,6 +29,8 @@ function calculateCommissions() {
     nlapiLogExecution('DEBUG', 'Param date_to', date_to);
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_main_index'));
     nlapiLogExecution('DEBUG', 'Param main_index', main_index);
+    var timestamp = ctx.getSetting('SCRIPT', 'custscript_timestamp3');
+    nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
     // Values to be calculated
     var nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_nb_invoices_array'));
@@ -182,7 +184,13 @@ function calculateCommissions() {
         }
     });
 
-    var billNextResultArray = billResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
+    var will_reschedule = (main_index + index_in_callback < 999) ? false : true;
+    if (will_reschedule) {
+        var billNextResultArray = billResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
+    } else {
+        var billNextResultArray = billResultSet.getResults(main_index + index_in_callback + 1, main_index + index_in_callback + 2);
+    }
+    
     nlapiLogExecution('DEBUG', '(billNextResultArray.length == 0)', (billNextResultArray.length == 0));
     if (billNextResultArray.length == 0) {
         // Save results in a custom record
@@ -192,6 +200,7 @@ function calculateCommissions() {
         zeeCommissionPageRecord.setFieldValue('custrecord_zee_id', zee_id);
         zeeCommissionPageRecord.setFieldValue('custrecord_date_from', date_from);
         zeeCommissionPageRecord.setFieldValue('custrecord_date_to', date_to);
+        zeeCommissionPageRecord.setFieldValue('custrecord_timestamp', timestamp);
         zeeCommissionPageRecord.setFieldValue('custrecord_main_index', main_index + index_in_callback);
         zeeCommissionPageRecord.setFieldValue('custrecord_nb_invoices_array', JSON.stringify(nb_invoices_array));
         zeeCommissionPageRecord.setFieldValue('custrecord_revenues_tax_array', JSON.stringify(revenues_tax_array));

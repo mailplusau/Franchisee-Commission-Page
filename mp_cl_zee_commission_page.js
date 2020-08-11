@@ -39,10 +39,12 @@ function pageInit() {
     zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
+    var timestamp = nlapiGetFieldValue('custpage_timestamp');
     console.log('Parameters on pageInit : ', {
         'zee_id': zee_id,
         'date_from': date_from,
-        'date_to': date_to
+        'date_to': date_to,
+        'timestamp': timestamp
     });
 
     var date_from_iso = dateNetsuiteToISO(date_from);
@@ -135,20 +137,16 @@ function loadCommissionTable() {
     var zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
-
-    // Display parameters
-    // $('#zee_dropdown [value=' + zee_id + ']').attr('selected', true);
-    // $('#date_from').val(dateNetsuiteToISO(date_from));
-    // $('#date_to').val(dateNetsuiteToISO(date_to));
+    var timestamp = nlapiGetFieldValue('custpage_timestamp');
 
     var zee_name = $('#zee_dropdown option:selected').text();
     $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission Page');
 
     if (!isNullorEmpty(zee_id)) {
         clearInterval(load_record_interval);
-        load_record_interval = setInterval(loadZCPRecord, 15000, zee_id, date_from, date_to);
+        load_record_interval = setInterval(loadZCPRecord, 15000, zee_id, date_from, date_to, timestamp);
     }
-    console.log('load_record_interval in loadCommissionTable', load_record_interval, 'with parameters zee_id : ', zee_id, 'date_from : ', date_from, 'date_to : ', date_to);
+    console.log('load_record_interval in loadCommissionTable', load_record_interval, 'with parameters zee_id :', zee_id, 'date_from :', date_from, 'date_to :', date_to, 'timestamp :', timestamp);
 }
 
 /**
@@ -156,12 +154,15 @@ function loadCommissionTable() {
  * This record contains the results of the search, and is calculated with the scheduled script 'mp_ss_zee_commission_page'.
  * @param {Number} zee_id 
  * @param {String} date_from 
- * @param {String} date_to 
+ * @param {String} date_to
+ * @param {Number} timestamp
  */
-function loadZCPRecord(zee_id, date_from, date_to) {
+function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
     console.log('load_record_interval in loadZCPRecord', load_record_interval);
     var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
-    var zcpFilterExpression = new nlobjSearchFilter('name', null, 'is', zcp_record_name);
+    var zcpFilterExpression = [];
+    zcpFilterExpression[0] = new nlobjSearchFilter('name', null, 'is', zcp_record_name);
+    zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
     var zcp_columns = [];
     zcp_columns[0] = new nlobjSearchColumn('custrecord_nb_invoices_array');
     zcp_columns[1] = new nlobjSearchColumn('custrecord_revenues_tax_array');
