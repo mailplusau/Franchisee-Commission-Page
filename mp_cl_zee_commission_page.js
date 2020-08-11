@@ -36,7 +36,10 @@ zee_name = 'Alexandria';
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
 
-    zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
+    var param_zee_id = nlapiGetFieldValue('custpage_zee_id');
+    if (!isNullorEmpty(param_zee_id)) {
+        zee_id = parseInt(param_zee_id);
+    }
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
     var timestamp = nlapiGetFieldValue('custpage_timestamp');
@@ -134,7 +137,10 @@ function loadCommissionTable() {
     $('#operator_results').empty();
 
     // Get parameters
-    var zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
+    var param_zee_id = nlapiGetFieldValue('custpage_zee_id');
+    if (!isNullorEmpty(param_zee_id)) {
+        zee_id = parseInt(param_zee_id);
+    }
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
     var timestamp = nlapiGetFieldValue('custpage_timestamp');
