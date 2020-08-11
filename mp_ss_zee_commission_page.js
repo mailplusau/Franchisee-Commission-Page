@@ -53,12 +53,14 @@ function calculateCommissions() {
         if (usage_loopstart_cust < 200 || index == 999) {
             nlapiLogExecution('DEBUG', 'usage_loopstart_cust', usage_loopstart_cust);
             nlapiLogExecution('DEBUG', 'index', index);
+            nlapiLogExecution('DEBUG', 'main_index + index', main_index + index);
 
             var params = {
                 custscript_zcp_zee_id: zee_id,
                 custscript_date_from: date_from,
                 custscript_date_to: date_to,
                 custscript_main_index: main_index + index,
+                custscript_timestamp3: timestamp,
                 custscript_nb_invoices_array: JSON.stringify(nb_invoices_array),
                 custscript_revenues_tax_array: JSON.stringify(revenues_tax_array),
                 custscript_revenues_total_array: JSON.stringify(revenues_total_array),
@@ -184,7 +186,7 @@ function calculateCommissions() {
         }
     });
 
-    var will_reschedule = (main_index + index_in_callback < 999) ? false : true;
+    var will_reschedule = (index_in_callback < 999) ? false : true;
     if (will_reschedule) {
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
     } else {
