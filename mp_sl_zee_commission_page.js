@@ -18,7 +18,7 @@ if (nlapiGetContext().getEnvironment() == "SANDBOX") {
     baseURL = 'https://1048144-sb3.app.netsuite.com';
 }
 
-var zee_id = null;
+var zee_id = '';
 var ctx = nlapiGetContext();
 var userRole = parseInt(ctx.getRole());
 if (userRole == 1000) {
@@ -44,13 +44,35 @@ function showCommissions(request, response) {
         if (!isNullorEmpty(params)) {
             params = JSON.parse(params);
             zee_id = parseInt(params.zee_id);
-            date_from = dateFilter2DateSelected(params.date_from);
-            date_to = dateFilter2DateSelected(params.date_to);
+            date_from = params.date_from;
+            date_to = params.date_to;
+            nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+            nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+            nlapiLogExecution('DEBUG', 'Param date_to', date_to);
         }
 
         if (!isNullorEmpty(zee_id)) {
             var zeeRecord = nlapiLoadRecord('partner', zee_id);
             var zee_name = zeeRecord.getFieldValue('companyname');
+            /*
+            var ss_params = {
+                custscript_zcp_zee_id: zee_id,
+                custscript_date_from: date_from,
+                custscript_date_to: date_to,
+                custscript_main_index: 0,
+                custscript_nb_invoices_array: JSON.stringify([]),
+                custscript_revenues_tax_array: JSON.stringify([]),
+                custscript_revenues_total_array: JSON.stringify([]),
+                custscript_commissions_tax_array: JSON.stringify([]),
+                custscript_commissions_total_array: JSON.stringify([]),
+                custscript_bills_id_set: JSON.stringify({}),
+                custscript_operator_dict: JSON.stringify({})
+            };
+            nlapiLogExecution('DEBUG', 'ss_params', ss_params);
+            nlapiScheduleScript('customscript_ss_zee_commission_page', 'customdeploy_ss_zee_commission_page', ss_params);
+            */
+            var status = nlapiScheduleScript('customscript_ss_zee_commission_page', 'customdeploy_ss_zee_commission_page', null);
+            nlapiLogExecution('DEBUG', 'Scheduled script scheduled', status);
         }
 
         var form = nlapiCreateForm('Franchisee ' + zee_name + ' : Commissions Page');
@@ -79,18 +101,27 @@ function showCommissions(request, response) {
         inlineHtml += '<div class="form-group container content_section hide">';
         inlineHtml += commissionTable();
         inlineHtml += operatorTable();
-        inlineHtml += '</div';
+        inlineHtml += '</div>';
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
-        // form.addSubmitButton('Update Ticket');
+        // form.addSubmitButton('').setDisplayType('hidden');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
     } else {
-        nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page', null, null);
+        var zee_id = request.getParameter('custpage_zee_id');
+        var date_from = request.getParameter('custpage_date_from');
+        var date_to = request.getParameter('custpage_date_to');
+
+        var zcp_params = {
+            custparam_zee_id: zee_id,
+            custparam_date_from: date_from,
+            custparam_date_to: date_to
+        }
+        nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page', null, zcp_params);
     }
 }
 
@@ -236,6 +267,7 @@ function operatorTable() {
  * @param   {String}    date_filter     ex: "04/06/2020"
  * @returns {String}    date_selected   ex: "2020-06-04"
  */
+/*
 function dateFilter2DateSelected(date_filter) {
     var date_selected = '';
     if (!isNullorEmpty(date_filter)) {
@@ -249,3 +281,4 @@ function dateFilter2DateSelected(date_filter) {
     }
     return date_selected;
 }
+*/

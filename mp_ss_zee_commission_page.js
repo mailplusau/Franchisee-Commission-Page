@@ -18,9 +18,12 @@ var ctx = nlapiGetContext();
 
 function calculateCommissions() {
     // Script parameters
-    var zee_id = ctx.getSetting('SCRIPT', 'custscript_zee_id');
+    var zee_id = ctx.getSetting('SCRIPT', 'custscript_zcp_zee_id');
+    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
     var date_from = ctx.getSetting('SCRIPT', 'custscript_date_from');
+    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
     var date_to = ctx.getSetting('SCRIPT', 'custscript_date_to');
+    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
     var main_index = ctx.getSetting('SCRIPT', 'custscript_main_index');
 
     // Values to be calculated
@@ -42,17 +45,17 @@ function calculateCommissions() {
         var usage_loopstart_cust = ctx.getRemainingUsage();
         if (usage_loopstart_cust < 200) {
             var params = {
-                zee_id: zee_id,
-                date_from: date_from,
-                date_to: date_to,
-                main_index: main_index + index,
-                nb_invoices_array: JSON.stringify(nb_invoices_array),
-                revenues_tax_array: JSON.stringify(revenues_tax_array),
-                revenues_total_array: JSON.stringify(revenues_total_array),
-                commissions_tax_array: JSON.stringify(commissions_tax_array),
-                commissions_total_array: JSON.stringify(commissions_total_array),
-                bills_id_set: JSON.stringify(bills_id_set),
-                operator_dict: JSON.stringify(operator_dict)
+                custscript_zcp_zee_id: zee_id,
+                custscript_date_from: date_from,
+                custscript_date_to: date_to,
+                custscript_main_index: main_index + index,
+                custscript_nb_invoices_array: JSON.stringify(nb_invoices_array),
+                custscript_revenues_tax_array: JSON.stringify(revenues_tax_array),
+                custscript_revenues_total_array: JSON.stringify(revenues_total_array),
+                custscript_commissions_tax_array: JSON.stringify(commissions_tax_array),
+                custscript_commissions_total_array: JSON.stringify(commissions_total_array),
+                custscript_bills_id_set: JSON.stringify(bills_id_set),
+                custscript_operator_dict: JSON.stringify(operator_dict)
             };
 
             reschedule = rescheduleScript(prev_inv_deploy, adhoc_inv_deploy, params);

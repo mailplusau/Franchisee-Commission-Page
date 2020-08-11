@@ -35,16 +35,25 @@ zee_name = 'Alexandria';
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
 
+    var zee_id = nlapiGetFieldValue('custpage_zee_id');
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
+    console.log('Parameters on pageInit : ', {
+        'zee_id': zee_id,
+        'date_from': date_from,
+        'date_to': date_to
+    });
 
-    if (!isNullorEmpty(date_from)) {
-        $('#date_from').val(date_from);
+    var date_from_iso = dateNetsuiteToISO(date_from);
+    var date_to_iso = dateNetsuiteToISO(date_to);
+
+    if (!isNullorEmpty(date_from_iso)) {
+        $('#date_from').val(date_from_iso);
     }
-    if (!isNullorEmpty(date_to)) {
-        $('#date_to').val(date_to);
+    if (!isNullorEmpty(date_to_iso)) {
+        $('#date_to').val(date_to_iso);
     }
-    if (!isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+    if (!isNullorEmpty(zee_id) || !isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
         showLoading();
         loadCommissionTable();
         hideLoading();
@@ -57,7 +66,8 @@ function pageInit() {
 
     $('#zee_dropdown').change(function () {
         showLoading();
-        loadCommissionTable();
+        // loadCommissionTable();
+        reloadPageWithParams();
         hideLoading();
     });
     $('#period_dropdown').change(function () {
@@ -66,8 +76,10 @@ function pageInit() {
         hideLoading();
     });
     $('#date_from, #date_to').change(function () {
+        console.log('Reload page with params in #date_from, #date_to change');
         showLoading();
-        loadCommissionTable();
+        // loadCommissionTable();
+        reloadPageWithParams();
         hideLoading();
         $('#period_dropdown option:selected').attr('selected', false);
     });
@@ -95,6 +107,23 @@ function hideLoading() {
     $('.content_section').removeClass('hide');
 }
 
+function reloadPageWithParams() {
+
+    var zee_id = $('#zee_dropdown option:selected').val();
+    var date_from = dateISOToNetsuite($('#date_from').val());
+    var date_to = dateISOToNetsuite($('#date_to').val());
+    var params = {
+        zee_id: parseInt(zee_id),
+        date_from: date_from,
+        date_to: date_to
+    };
+    params = JSON.stringify(params);
+    var upload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page') + '&custparam_params=' + encodeURIComponent(params);
+    if (!isNullorEmpty(zee_id)) {
+        window.open(upload_url, "_self", "height=750,width=650,modal=yes,alwaysRaised=yes");
+    }
+}
+
 /**
  * Triggered when a Franchisee is selected in the dropdown list.
  */
@@ -105,8 +134,8 @@ function loadCommissionTable() {
     nlapiSetFieldValue('custpage_zee_id', zee_id);
     var zee_name = $('#zee_dropdown option:selected').text();
     $('.uir-page-title-firstline h1').text('Franchisee ' + zee_name + ' : Commission Page');
-    var date_from = dateSelected2DateFilter($('#date_from').val());
-    var date_to = dateSelected2DateFilter($('#date_to').val());
+    var date_from = dateISOToNetsuite($('#date_from').val());
+    var date_to = dateISOToNetsuite($('#date_to').val());
 
     if (!isNullorEmpty(zee_id)) {
         clearInterval(load_record_interval);
@@ -263,8 +292,8 @@ function setRow(row_selector, amounts_array) {
     var [nb_invoices, revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
 
     var zee_id = $('#zee_dropdown option:selected').val();
-    var date_from = dateSelected2DateFilter($('#date_from').val());
-    var date_to = dateSelected2DateFilter($('#date_to').val());
+    var date_from = dateISOToNetsuite($('#date_from').val());
+    var date_to = dateISOToNetsuite($('#date_to').val());
     var type = 'total';
     var paid = 'all';
     var row_selector_array = row_selector.split(' ')[2].split('.');
@@ -431,7 +460,8 @@ function selectDate() {
     }
     $('#date_from').val(date_from);
     $('#date_to').val(date_to);
-    loadCommissionTable();
+    // loadCommissionTable();
+    reloadPageWithParams();
 }
 
 /**
@@ -653,6 +683,7 @@ function operatorTable(operator_dict) {
  * @param   {String}    date_selected   ex: "2020-06-04"
  * @returns {String}    date_filter     ex: "04/06/2020"
  */
+/*
 function dateSelected2DateFilter(date_selected) {
     var date_filter = '';
     if (!isNullorEmpty(date_selected)) {
@@ -667,12 +698,14 @@ function dateSelected2DateFilter(date_selected) {
 
     return date_filter;
 }
+*/
 
 /**
  * Converts the date string in the "date_to" and "date_from" fields to Javascript Date objects.
  * @param   {String}    date_selected   ex: "2020-06-04"
  * @returns {Date}      date            ex: Thu Jun 04 2020 00:00:00 GMT+1000 (Australian Eastern Standard Time)
  */
+/*
 function dateSelected2Date(date_selected) {
     // date_selected = "2020-06-04"
     var date_array = date_selected.split('-');
@@ -682,6 +715,37 @@ function dateSelected2Date(date_selected) {
     var day = date_array[2];
     var date = new Date(year, month, day);
     return date;
+}
+*/
+
+/**
+ * @param   {String} date_netsuite  "1/6/2020"
+ * @returns {String} date_iso       "2020-06-01"
+ */
+function dateNetsuiteToISO(date_netsuite) {
+    var date_iso = '';
+    if (!isNullorEmpty(date_iso)) {
+        var date = nlapiStringToDate(date_netsuite);
+        var date_day = date.getDate();
+        var date_month = date.getMonth();
+        var date_year = date.getFullYear();
+        var date_utc = new Date(Date.UTC(date_year, date_month, date_day));
+        date_iso = date_utc.toISOString().split('T')[0];
+    }
+    return date_iso;
+}
+
+/**
+ * @param   {String} date_iso       "2020-06-01"
+ * @returns {String} date_netsuite  "1/6/2020"
+ */
+function dateISOToNetsuite(date_iso) {
+    var date_netsuite = '';
+    if (!isNullorEmpty(date_iso)) {
+        var date_utc = new Date(date_iso);
+        var date_netsuite = nlapiDateToString(date_utc);
+    }
+    return date_netsuite;
 }
 
 /**
