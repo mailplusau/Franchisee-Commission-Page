@@ -20,16 +20,17 @@ var index_in_callback = 0;
 function calculateCommissions() {
     // Script parameters
     var zee_id = ctx.getSetting('SCRIPT', 'custscript_zcp_zee_id');
-    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
     var date_from = ctx.getSetting('SCRIPT', 'custscript_date_from');
-    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
     if (isNullorEmpty(date_from)) { date_from = '' }
     var date_to = ctx.getSetting('SCRIPT', 'custscript_date_to');
     if (isNullorEmpty(date_to)) { date_to = '' }
-    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_main_index'));
-    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
     var timestamp = ctx.getSetting('SCRIPT', 'custscript_timestamp3');
+
+    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
+    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
     nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
     // Values to be calculated
@@ -71,7 +72,6 @@ function calculateCommissions() {
             };
 
             reschedule = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params)
-            // reschedule = rescheduleScript(prev_inv_deploy, adhoc_inv_deploy, params);
             nlapiLogExecution('AUDIT', 'Reschedule Return', reschedule);
             if (reschedule == false) {
                 return false;
@@ -107,7 +107,6 @@ function calculateCommissions() {
                             unpaid_services_revenues_total += total_amount;
                             unpaid_services_commissions_total += billing_amount;
                             nb_unpaid_services += 1;
-                            // unpaid_services_bill = billJson; // Just to verify
                             break;
 
                         case 'paidInFull':  // paid
@@ -116,7 +115,6 @@ function calculateCommissions() {
                             paid_services_revenues_total += total_amount;
                             paid_services_commissions_total += billing_amount;
                             nb_paid_services += 1;
-                            // paid_services_bill = billJson; // Just to verify
                             break;
 
                         default:
@@ -128,8 +126,8 @@ function calculateCommissions() {
                     var barcodeResultSet = loadBarcodesSearch(invoice_id);
                     barcodeResultSet.forEachResult(function (barcodeResult) {
                         operator_id = barcodeResult.getValue('custrecord_cust_prod_stock_operator');
+                        nlapiLogExecution("DEBUG", 'operator_id', operator_id);
                         var operator_name = barcodeResult.getText('custrecord_cust_prod_stock_operator');
-                        nlapiSetFieldValue('custpage_operator_id', operator_id);
 
                         if (operator_dict[operator_id] == undefined) {
                             operator_dict[operator_id] = {
@@ -145,7 +143,6 @@ function calculateCommissions() {
                         }
                     })
 
-                    var operator_id = nlapiGetFieldValue('custpage_operator_id');
                     switch (invoice_status) {
                         case 'open':        // unpaid
                             unpaid_products_revenues_tax += revenue_tax;
@@ -157,7 +154,6 @@ function calculateCommissions() {
                                 operator_dict[operator_id].tax_unpaid_amount += tax_commission;
                             }
                             nb_unpaid_products += 1;
-                            // unpaid_products_bill = billJson; // Just to verify
                             break;
 
                         case 'paidInFull':  // paid
@@ -170,7 +166,6 @@ function calculateCommissions() {
                                 operator_dict[operator_id].tax_paid_amount += tax_commission;
                             }
                             nb_paid_products += 1;
-                            // paid_products_bill = billJson; // Just to verify
                             break;
 
                         default:
