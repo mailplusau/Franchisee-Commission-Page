@@ -2,14 +2,14 @@
 * Module Description
 * 
 * NSVersion    Date                Author         
-* 2.00         2020-07-14 10:05:00 Raphael
+* 2.00         2020-08-12 12:47:00 Raphael
 *
 * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
 *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-23 15:07:00
+* @Last Modified time: 2020-08-12 12:47:00
 */
 
 var adhoc_inv_deploy = 'customdeploy_ss_zee_commission_page';
@@ -48,7 +48,8 @@ function calculateCommissions() {
     billResultArray.forEach(function (billResult, index) {
         index_in_callback = index;
 
-        // If the limit of governance units is almost reached,
+        // If the limit of governance units is almost reached, 
+        // or if the last element of the billResultArray is reached,
         // the script is rescheduled and the results will be iterated from this element.
         var usage_loopstart_cust = ctx.getRemainingUsage();
         if (usage_loopstart_cust < 200 || index == 999) {
@@ -183,8 +184,10 @@ function calculateCommissions() {
 
     var will_reschedule = (index_in_callback < 999) ? false : true;
     if (will_reschedule) {
+        // If the script will be rescheduled, we look for the element 999 of the loop to see if it is empty or not.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
     } else {
+        // If the script will not be rescheduled, we make sure we didn't miss any results in the search.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback + 1, main_index + index_in_callback + 2);
     }
     
@@ -213,9 +216,9 @@ function calculateCommissions() {
 /**
  * Load the result set of the bill records linked to the Franchisee.
  * @param   {String}                zee_id
- * @param   {String}                date_from   'dd/mm/YYYY'
- * @param   {String}                date_to     'dd/mm/YYYY'
- * @return  {nlobjSearchResultSet} billResultSet
+ * @param   {String}                date_from   'd/m/YYYY' (NetSuite format)
+ * @param   {String}                date_to     'd/m/YYYY' (NetSuite format)
+ * @return  {nlobjSearchResultSet} `billResultSet`
  */
 function loadBillSearch(zee_id, date_from, date_to) {
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');

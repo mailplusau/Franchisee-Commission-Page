@@ -9,7 +9,7 @@
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-23 15:07:00
+* @Last Modified time: 2020-08-12 12:47:00
 *
 */
 
@@ -24,6 +24,7 @@ var zee_id = '';
 if (userRole == 1000) {
     zee_id = ctx.getUser();
 }
+// load_record_interval is a global var so that the function clearInterval() can be called anywhere in the code.
 var load_record_interval;
 
 // For test
@@ -112,7 +113,7 @@ function reloadPageWithParams() {
 }
 
 /**
- * Triggered when a Franchisee is selected in the dropdown list.
+ * Triggered when a if there are parameters of Franchisee ID, Date From or Date To.
  */
 function loadCommissionTable() {
     $('#operator_results').empty();
@@ -131,6 +132,7 @@ function loadCommissionTable() {
 
     if (!isNullorEmpty(zee_id)) {
         clearInterval(load_record_interval);
+        // Looks every 15 seconds for the record linked to the parameters zee_id, date_from, date_to and timestamp.
         load_record_interval = setInterval(loadZCPRecord, 15000, zee_id, date_from, date_to, timestamp);
     }
     console.log('load_record_interval in loadCommissionTable', load_record_interval, 'with parameters zee_id :', zee_id, 'date_from :', date_from, 'date_to :', date_to, 'timestamp :', timestamp);
@@ -348,7 +350,7 @@ function setRow(row_selector, amounts_array) {
 /**
  * Calculate the commission and revenue by deducting the tax from the total amount.
  * @param   {Array} amount_row  (length 2 or 4)
- * @returns {Array} amount_row  (length 3 or 6)
+ * @returns {Array} `amount_row` (length 3 or 6)
  */
 function calculateWithoutTax(amount_row) {
     var array_length = amount_row.length;
@@ -366,9 +368,9 @@ function calculateWithoutTax(amount_row) {
 
 /**
  * Both array should have the same length.
- * @param {Array}   array1 
- * @param {Array}   array2 
- * @returns {Array} The sum of each element of the two arrays.
+ * @param   {Array} array1 
+ * @param   {Array} array2 
+ * @returns {Array} `sum_array` The sum of each element of the two arrays.
  */
 function sum2arrays(array1, array2) {
     var length_1 = array1.length;
@@ -384,6 +386,9 @@ function sum2arrays(array1, array2) {
     }
 }
 
+/**
+ * Sets the values of `date_from` and `date_to` based on the selected option in the '#period_dropdown'.
+ */
 function selectDate() {
     var period_selected = $('#period_dropdown option:selected').val();
     var today = new Date();
@@ -467,7 +472,7 @@ function selectDate() {
 /**
  * The inline HTML for the cells in each row of the commission_table.
  * (Except the header cell of each row)
- * @returns {String} inlineQty
+ * @returns {String} `inlineQty`
  */
 function tableRowCells() {
     var inlineQty = '<td headers="table_nb_invoices"></td>';
@@ -484,7 +489,7 @@ function tableRowCells() {
 /**
  * The inline html code for the commission table.
  * Inserted at the beginning of the pageInit function.
- * @returns {String} inlineQty
+ * @returns {String} `inlineQty`
  */
 function commissionTable() {
 
@@ -570,6 +575,12 @@ function commissionTable() {
     return inlineQty;
 }
 
+/**
+ * The inline html code for the operator table.
+ * Inserted in the `displayZCPResults()` function if there are operator ids in the dictionnary.
+ * @param   {Object} operator_dict
+ * @returns {String} `inlineQty`
+ */
 function operatorTable(operator_dict) {
     var operator_id_array = Object.keys(operator_dict);
 
@@ -638,6 +649,7 @@ function operatorTable(operator_dict) {
 }
 
 /**
+ * Used to set the value of the date input fields.
  * @param   {String} date_netsuite  "1/6/2020"
  * @returns {String} date_iso       "2020-06-01"
  */
@@ -655,6 +667,7 @@ function dateNetsuiteToISO(date_netsuite) {
 }
 
 /**
+ * Used to pass the values of `date_from` and `date_to` between the scripts and to Netsuite for the records and the search.
  * @param   {String} date_iso       "2020-06-01"
  * @returns {String} date_netsuite  "1/6/2020"
  */
