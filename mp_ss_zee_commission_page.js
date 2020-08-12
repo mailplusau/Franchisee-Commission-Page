@@ -2,14 +2,14 @@
 * Module Description
 * 
 * NSVersion    Date                Author         
-* 2.00         2020-07-14 10:05:00 Raphael
+* 2.00         2020-08-12 12:47:00 Raphael
 *
 * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
 *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-23 15:07:00
+* @Last Modified time: 2020-08-12 12:47:00
 */
 
 var adhoc_inv_deploy = 'customdeploy_ss_zee_commission_page';
@@ -20,16 +20,17 @@ var index_in_callback = 0;
 function calculateCommissions() {
     // Script parameters
     var zee_id = ctx.getSetting('SCRIPT', 'custscript_zcp_zee_id');
-    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
     var date_from = ctx.getSetting('SCRIPT', 'custscript_date_from');
-    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
     if (isNullorEmpty(date_from)) { date_from = '' }
     var date_to = ctx.getSetting('SCRIPT', 'custscript_date_to');
     if (isNullorEmpty(date_to)) { date_to = '' }
-    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_main_index'));
-    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
     var timestamp = ctx.getSetting('SCRIPT', 'custscript_timestamp3');
+
+    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
+    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
     nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
     // Values to be calculated
@@ -47,7 +48,8 @@ function calculateCommissions() {
     billResultArray.forEach(function (billResult, index) {
         index_in_callback = index;
 
-        // If the limit of governance units is almost reached,
+        // If the limit of governance units is almost reached, 
+        // or if the last element of the billResultArray is reached,
         // the script is rescheduled and the results will be iterated from this element.
         var usage_loopstart_cust = ctx.getRemainingUsage();
         if (usage_loopstart_cust < 200 || index == 999) {
@@ -71,7 +73,6 @@ function calculateCommissions() {
             };
 
             reschedule = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params)
-            // reschedule = rescheduleScript(prev_inv_deploy, adhoc_inv_deploy, params);
             nlapiLogExecution('AUDIT', 'Reschedule Return', reschedule);
             if (reschedule == false) {
                 return false;
@@ -107,7 +108,6 @@ function calculateCommissions() {
                             unpaid_services_revenues_total += total_amount;
                             unpaid_services_commissions_total += billing_amount;
                             nb_unpaid_services += 1;
-                            // unpaid_services_bill = billJson; // Just to verify
                             break;
 
                         case 'paidInFull':  // paid
@@ -116,7 +116,6 @@ function calculateCommissions() {
                             paid_services_revenues_total += total_amount;
                             paid_services_commissions_total += billing_amount;
                             nb_paid_services += 1;
-                            // paid_services_bill = billJson; // Just to verify
                             break;
 
                         default:
@@ -128,8 +127,8 @@ function calculateCommissions() {
                     var barcodeResultSet = loadBarcodesSearch(invoice_id);
                     barcodeResultSet.forEachResult(function (barcodeResult) {
                         operator_id = barcodeResult.getValue('custrecord_cust_prod_stock_operator');
+                        nlapiLogExecution("DEBUG", 'operator_id', operator_id);
                         var operator_name = barcodeResult.getText('custrecord_cust_prod_stock_operator');
-                        nlapiSetFieldValue('custpage_operator_id', operator_id);
 
                         if (operator_dict[operator_id] == undefined) {
                             operator_dict[operator_id] = {
@@ -145,7 +144,6 @@ function calculateCommissions() {
                         }
                     })
 
-                    var operator_id = nlapiGetFieldValue('custpage_operator_id');
                     switch (invoice_status) {
                         case 'open':        // unpaid
                             unpaid_products_revenues_tax += revenue_tax;
@@ -157,7 +155,6 @@ function calculateCommissions() {
                                 operator_dict[operator_id].tax_unpaid_amount += tax_commission;
                             }
                             nb_unpaid_products += 1;
-                            // unpaid_products_bill = billJson; // Just to verify
                             break;
 
                         case 'paidInFull':  // paid
@@ -170,7 +167,6 @@ function calculateCommissions() {
                                 operator_dict[operator_id].tax_paid_amount += tax_commission;
                             }
                             nb_paid_products += 1;
-                            // paid_products_bill = billJson; // Just to verify
                             break;
 
                         default:
@@ -188,8 +184,10 @@ function calculateCommissions() {
 
     var will_reschedule = (index_in_callback < 999) ? false : true;
     if (will_reschedule) {
+        // If the script will be rescheduled, we look for the element 999 of the loop to see if it is empty or not.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
     } else {
+        // If the script will not be rescheduled, we make sure we didn't miss any results in the search.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback + 1, main_index + index_in_callback + 2);
     }
     
@@ -218,9 +216,9 @@ function calculateCommissions() {
 /**
  * Load the result set of the bill records linked to the Franchisee.
  * @param   {String}                zee_id
- * @param   {String}                date_from   'dd/mm/YYYY'
- * @param   {String}                date_to     'dd/mm/YYYY'
- * @return  {nlobjSearchResultSet} billResultSet
+ * @param   {String}                date_from   'd/m/YYYY' (NetSuite format)
+ * @param   {String}                date_to     'd/m/YYYY' (NetSuite format)
+ * @return  {nlobjSearchResultSet} `billResultSet`
  */
 function loadBillSearch(zee_id, date_from, date_to) {
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');

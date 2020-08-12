@@ -9,7 +9,7 @@
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-23 15:07:00
+* @Last Modified time: 2020-08-12 12:47:00
 *
 */
 
@@ -72,6 +72,9 @@ function showCommissions(request, response) {
                 custscript_operator_dict: JSON.stringify({})
             };
             nlapiLogExecution('DEBUG', 'ss_params', JSON.stringify(ss_params));
+            // This scheduled script will calculate the commissions and revenues earned by the Franchisee `zee_id` during the period
+            // between `date_from` and `date_to`. A timestamp is added to make sure we will get the results from a unique record, as 
+            // a query with the same parameters might display different results if it is called later on.
             var status = nlapiScheduleScript('customscript_ss_zee_commission_page', 'customdeploy_ss_zee_commission_page', ss_params);
             nlapiLogExecution('DEBUG', 'Scheduled script scheduled', status);
         }
@@ -94,7 +97,7 @@ function showCommissions(request, response) {
         inlineHtml += franchiseeDropdownSection(zee_id);
         inlineHtml += periodDropdownSection(date_from, date_to);
         inlineHtml += dateFilterSection();
-        inlineHtml += loadingSection();
+        inlineHtml += loadingSection(zee_id, date_from, date_to);
         inlineHtml += '<div class="form-group container content_section hide">';
         inlineHtml += commissionTable();
         inlineHtml += operatorTable();
@@ -124,8 +127,18 @@ function showCommissions(request, response) {
     }
 }
 
-function loadingSection() {
-    var inlineQty = '<div class="form-group container loading_section" style="text-align:center">';
+/**
+ * The header showing that the results are loading.
+ * The loading message is shown to the user only if there is a `zee_id` parameter and at least one of the two date parameters.
+ * In that case, the scheduled script has been called and a result will be displayed.
+ * @param   {Number} zee_id 
+ * @param   {String} date_from 
+ * @param   {String} date_to 
+ * @returns {String} `inlineQty`
+ */
+function loadingSection(zee_id, date_from, date_to) { 
+    var hide_loading_section = (!isNullorEmpty(zee_id) && (!isNullorEmpty(date_from) || !isNullorEmpty(date_to))) ? '' : 'hide';
+    var inlineQty = '<div class="form-group container loading_section ' + hide_loading_section + '" style="text-align:center">';
     inlineQty += '<div class="row">';
     inlineQty += '<div class="col-xs-12 loading_div">';
     inlineQty += '<h1>Loading...</h1>';
@@ -137,26 +150,21 @@ function loadingSection() {
 /**
  * The Franchisee dropdown list.
  * @param   {Number}    zee_id
- * @return  {String}    inlineQty
+ * @return  {String}    `inlineQty`
  */
 function franchiseeDropdownSection(zee_id) {
     // The dropdown is hidden to the user if it's a Franchisee.
-    if (userRole == 1000) {
-        var inlineQty = '<div class="form-group container zee_dropdown_section hide">';
-    } else {
-        var inlineQty = '<div class="form-group container zee_dropdown_section">';
-    }
+    var hide_zee_section = (userRole == 1000) ? 'hide' : '';
+    var disabled_dropdown = (userRole == 1000) ? 'disabled' : '';
+
+    var inlineQty = '<div class="form-group container zee_dropdown_section ' + hide_zee_section + '">';
 
     inlineQty += '<div class="row">';
     // Franchisee dropdown field
     inlineQty += '<div class="col-xs-12 zee_dropdown_div">';
     inlineQty += '<div class="input-group">';
     inlineQty += '<span class="input-group-addon" id="zee_dropdown_text">FRANCHISEE</span>';
-    if (userRole == 1000) {
-        inlineQty += '<select id="zee_dropdown" class="form-control" disabled>';
-    } else {
-        inlineQty += '<select id="zee_dropdown" class="form-control">';
-    }
+    inlineQty += '<select id="zee_dropdown" class="form-control" ' + disabled_dropdown + '>';
     inlineQty += '<option></option>';
 
     // Load the franchisees options
@@ -165,11 +173,8 @@ function franchiseeDropdownSection(zee_id) {
     zeesSearchResults.forEachResult(function (zeesSearchResult) {
         var opt_zee_id = zeesSearchResult.getValue("internalid", null, "GROUP");
         var opt_zee_name = zeesSearchResult.getValue("companyname", null, "GROUP");
-        if (opt_zee_id == zee_id) {
-            inlineQty += '<option value="' + opt_zee_id + '" selected>' + opt_zee_name + '</option>';
-        } else {
-            inlineQty += '<option value="' + opt_zee_id + '">' + opt_zee_name + '</option>';
-        }
+        var selected_option = (opt_zee_id == zee_id) ? 'selected' : '';
+        inlineQty += '<option value="' + opt_zee_id + '" ' + selected_option + '>' + opt_zee_name + '</option>';
         return true;
     });
 
@@ -183,9 +188,10 @@ function franchiseeDropdownSection(zee_id) {
  * The period dropdown field.
  * @param   {String}    date_from
  * @param   {String}    date_to
- * @return  {String}    inlineQty
+ * @return  {String}    `inlineQty`
  */
 function periodDropdownSection(date_from, date_to) {
+    var selected_option = (isNullorEmpty(date_from) && isNullorEmpty(date_to)) ? 'selected' : '';
     var inlineQty = '<div class="form-group container period_dropdown_section">';
     inlineQty += '<div class="row">';
     // Period dropdown field
@@ -195,11 +201,7 @@ function periodDropdownSection(date_from, date_to) {
     inlineQty += '<select id="period_dropdown" class="form-control">';
     inlineQty += '<option></option>';
     inlineQty += '<option value="this_week">This Week</option>';
-    if (!isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
-        inlineQty += '<option value="last_week">Last Week</option>';
-    } else {
-        inlineQty += '<option value="last_week" selected>Last Week</option>';
-    }
+    inlineQty += '<option value="last_week" ' + selected_option + '>Last Week</option>';
     inlineQty += '<option value="this_month">This Month</option>';
     inlineQty += '<option value="last_month">Last Month</option>';
     inlineQty += '<option value="full_year">Full Year (1 Jan -)</option>';
@@ -212,7 +214,9 @@ function periodDropdownSection(date_from, date_to) {
 
 /**
  * The date input fields to filter the invoices.
- * @return  {String}    inlineQty
+ * Even if the parameters `date_from` and `date_to` are defined, they can't be initiated in the HTML code.
+ * They are initiated with jQuery in the `pageInit()` function.
+ * @return  {String} `inlineQty`
  */
 function dateFilterSection() {
 
@@ -236,7 +240,7 @@ function dateFilterSection() {
 
 /**
  * The table of the revenues and commissions.
- * @return  {String}    inlineQty
+ * @return  {String} `inlineQty`
  */
 function commissionTable() {
     var inlineQty = '<div class="form-group container commission_table hide" style="font-size: small;">';
@@ -250,7 +254,7 @@ function commissionTable() {
 
 /**
  * The table of commissions sorted by operator.
- * @return  {String}    inlineQty
+ * @return  {String} `inlineQty`
  */
 function operatorTable() {
     var inlineQty = '<div class="form-group container operator_table hide" style="font-size: small;">';
