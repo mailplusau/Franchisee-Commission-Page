@@ -15,7 +15,7 @@
 var adhoc_inv_deploy = 'customdeploy_ss_zee_commission_page';
 var prev_inv_deploy = null;
 var ctx = nlapiGetContext();
-var index_in_callback;
+var index_in_callback = 0;
 
 function calculateCommissions() {
     // Script parameters
