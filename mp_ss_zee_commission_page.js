@@ -127,7 +127,6 @@ function calculateCommissions() {
                     var barcodeResultSet = loadBarcodesSearch(invoice_id);
                     barcodeResultSet.forEachResult(function (barcodeResult) {
                         operator_id = barcodeResult.getValue('custrecord_cust_prod_stock_operator');
-                        nlapiLogExecution("DEBUG", 'operator_id', operator_id);
                         var operator_name = barcodeResult.getText('custrecord_cust_prod_stock_operator');
 
                         if (operator_dict[operator_id] == undefined) {

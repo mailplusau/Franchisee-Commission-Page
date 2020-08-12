@@ -201,9 +201,9 @@ function periodDropdownSection(date_from, date_to) {
     inlineQty += '<select id="period_dropdown" class="form-control">';
     inlineQty += '<option></option>';
     inlineQty += '<option value="this_week">This Week</option>';
-    inlineQty += '<option value="last_week" ' + selected_option + '>Last Week</option>';
+    inlineQty += '<option value="last_week">Last Week</option>';
     inlineQty += '<option value="this_month">This Month</option>';
-    inlineQty += '<option value="last_month">Last Month</option>';
+    inlineQty += '<option value="last_month" ' + selected_option + '>Last Month</option>';
     inlineQty += '<option value="full_year">Full Year (1 Jan -)</option>';
     inlineQty += '<option value="financial_year">Financial Year (1 Jul -)</option>';
     inlineQty += '</select>';
