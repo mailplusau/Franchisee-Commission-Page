@@ -60,45 +60,26 @@ function pageInit() {
         $('#date_to').val(date_to_iso);
     }
     if (!isNullorEmpty(zee_id) || !isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
-        showLoading();
         loadCommissionTable();
-        hideLoading();
     }
     if (!isNullorEmpty($('#period_dropdown option:selected').val())) {
-        showLoading();
         selectDate();
-        hideLoading();
     }
 
     $('#zee_dropdown').change(function () {
-        showLoading();
         reloadPageWithParams();
-        hideLoading();
     });
     $('#period_dropdown').change(function () {
-        showLoading();
         selectDate();
-        hideLoading();
     });
     $('#date_from, #date_to').change(function () {
-        showLoading();
         reloadPageWithParams();
-        hideLoading();
         $('#period_dropdown option:selected').attr('selected', false);
     });
 }
 
 function saveRecord() {
 
-}
-
-/**
- * Display the loading message.
- * Hide the tables
- */
-function showLoading() {
-    $('.loading_section').removeClass('hide');
-    $('.content_section').addClass('hide');
 }
 
 /**
@@ -298,6 +279,7 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
         $('.operator_table').removeClass('hide');
     }
 
+    hideLoading();
     $('.commission_table').removeClass('hide');
     clearInterval(load_record_interval);
 }
