@@ -22,13 +22,6 @@ if (userRole == 1000) {
     var zee_id = ctx.getUser();
 }
 
-// For test
-/*
-var userRole = 1000;
-zee_id = '215';
-zee_name = 'Alexandria';
-*/
-
 function pageInit() {
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
@@ -223,7 +216,7 @@ function loadBillSearch() {
 
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
     var billFilterExpression = billSearch.getFilterExpression();
-    billFilterExpression.push('AND', ['custbody_related_franchisee', 'is', zee_id]);
+    billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
 
     // Date filter
     if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
