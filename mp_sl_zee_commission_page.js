@@ -25,13 +25,6 @@ if (userRole == 1000) {
     zee_id = ctx.getUser();
 }
 
-// For test
-/*
-var userRole = 1000;
-zee_id = '215';
-zee_name = 'Alexandria';
-*/
-
 function showCommissions(request, response) {
     if (request.getMethod() == "GET") {
 
@@ -39,10 +32,16 @@ function showCommissions(request, response) {
         var date_from = '';
         var date_to = '';
         var timestamp = '';
+        var is_params = 'F';
+
+        if (userRole == 1000) {
+            [date_from, date_to] = getLastMonthDates();
+        }
 
         // Load params
         var params = request.getParameter('custparam_params');
         if (!isNullorEmpty(params)) {
+            is_params = 'T';
             params = JSON.parse(params);
             zee_id = parseInt(params.zee_id);
             date_from = params.date_from;
@@ -52,7 +51,11 @@ function showCommissions(request, response) {
             nlapiLogExecution('DEBUG', 'Param date_to', date_to);
         }
 
-        if (!isNullorEmpty(zee_id)) {
+        nlapiLogExecution('DEBUG', 'zee_id after param', zee_id);
+        nlapiLogExecution('DEBUG', 'date_from after param', date_from);
+        nlapiLogExecution('DEBUG', 'date_to after param', date_to);
+
+        if (!isNullorEmpty(zee_id) && (is_params == 'T')) {
             var zeeRecord = nlapiLoadRecord('partner', zee_id);
             var zee_name = zeeRecord.getFieldValue('companyname');
             timestamp = Date.now().toString();
@@ -108,11 +111,12 @@ function showCommissions(request, response) {
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         form.addField('custpage_timestamp', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(timestamp);
+        form.addField('custpage_is_params', 'text', 'Is params').setDisplayType('hidden').setDefaultValue(is_params);
         form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
     } else {
-        var zee_id = request.getParameter('custpage_zee_id');
+        zee_id = request.getParameter('custpage_zee_id');
         var date_from = request.getParameter('custpage_date_from');
         var date_to = request.getParameter('custpage_date_to');
         var timestamp = request.getParameter('custpage_timestamp');
@@ -136,7 +140,7 @@ function showCommissions(request, response) {
  * @param   {String} date_to 
  * @returns {String} `inlineQty`
  */
-function loadingSection(zee_id, date_from, date_to) { 
+function loadingSection(zee_id, date_from, date_to) {
     var hide_loading_section = (!isNullorEmpty(zee_id) && (!isNullorEmpty(date_from) || !isNullorEmpty(date_to))) ? '' : 'hide';
     var inlineQty = '<div class="form-group container loading_section ' + hide_loading_section + '" style="text-align:center">';
     inlineQty += '<div class="row">';
@@ -264,4 +268,42 @@ function operatorTable() {
     inlineQty += '</div></div></div>';
 
     return inlineQty;
+}
+
+/**
+ * For client side scripts, the string returned is based on the user’s system time. 
+ * For server-side scripts, the string returned is based on the current time in the Pacific Time Zone. 
+ * Note that Daylight Savings Time does apply.
+ * 
+ * To make sure that `first_day_previous_month` and `date_from_last_month` are converted to the wanted date
+ * in `nlapiDateToString()`, 8 hours are added to those dates. 
+ * That is because the Pacific Time Zone is 7 or 8 hours behind UTC, depending on the season.
+ */
+function getLastMonthDates() {
+    // Wed Aug 12 2020 22:22:04 GMT-0700 (PDT) in the Suitelet script
+    // Thu Aug 13 2020 15:22:04 GMT+1000 (Australian Eastern Standard Time) in Sydney
+    var today = new Date();
+    var today_month = today.getUTCMonth();      // 7 (August, since the months start at 0 with January)
+    var today_year = today.getUTCFullYear();    // 2020
+
+    // Get the first day of the previous month (on the UTC timezone)
+    // Tue Jun 30 2020 17:00:00 GMT-0700 (PDT) in the Suitelet script
+    // Wed Jul 01 2020 10:00:00 GMT+1000 (Australian Eastern Standard Time)
+    var first_day_previous_month = new Date(Date.UTC(today_year, today_month - 1));
+    // Wed Jul 01 2020 01:00:00 GMT-0700 (PDT) in the Suitelet script
+    // Wed Jul 01 2020 18:00:00 GMT+1000 (Australian Eastern Standard Time)
+    first_day_previous_month.setHours(first_day_previous_month.getHours() + 8)
+
+    // Get the last day of the previous month (on the UTC timezone)
+    // Thu Jul 30 2020 17:00:00 GMT-0700 (PDT) in the Suitelet script
+    // Fri Jul 31 2020 10:00:00 GMT+1000 (Australian Eastern Standard Time)
+    var last_day_previous_month = new Date(Date.UTC(today_year, today_month, 0));
+    // Fri Jul 31 2020 01:00:00 GMT-0700 (PDT) in the Suitelet script
+    // Fri Jul 31 2020 18:00:00 GMT+1000 (Australian Eastern Standard Time)
+    last_day_previous_month.setHours(last_day_previous_month.getHours() + 8)
+
+    // Convert Date Object to Netsuite date string.
+    var date_from_last_month = nlapiDateToString(first_day_previous_month); // "1/7/2020"
+    var date_to_last_month = nlapiDateToString(last_day_previous_month);    // "31/7/2020"
+    return [date_from_last_month, date_to_last_month];
 }
