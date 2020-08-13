@@ -72,6 +72,7 @@ $(document).ready(function () {
                 title: "Bill Payment Date",
                 type: "date"
             },
+            { title: "Invoice Payment Date" },
             { title: "Invoice Status" },
             { title: "paid_amount == total_commission" }
         ],
@@ -96,7 +97,7 @@ $(document).ready(function () {
                 searchable: false
             }],
         rowCallback: function (row, data) {
-            if (data[9] == 'Open') {
+            if (data[10] == 'Open') {
                 if ($(row).hasClass('odd')) {
                     $(row).css('background-color', 'LemonChiffon');
                 } else {
@@ -187,12 +188,14 @@ function loadDatatable() {
                 }
 
                 var invoice_status = billResult.getValue('custbody_invoice_status');
+                var invoice_date_paid = billResult.getValue('custbody_date_invoice_paid');
 
-                invoice_date = dateNetsuite2DateSelectedFormat(invoice_date);
+                invoice_date = dateNetsuiteToISO(invoice_date);
                 total_revenue = financial(total_revenue);
                 total_commission = financial(total_commission);
-                bill_payment_date = dateNetsuite2DateSelectedFormat(bill_payment_date);
-                billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_status, paid_amount_is_total_commission]);
+                bill_payment_date = dateNetsuiteToISO(bill_payment_date);
+                invoice_date_paid = dateNetsuiteToISO(invoice_date_paid);
+                billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_date_paid, invoice_status, paid_amount_is_total_commission]);
             }
             return true;
         });
@@ -265,28 +268,21 @@ function financial(x) {
 }
 
 /**
- * Converts the date string in the "date_netsuite" format to the format of "date_selected".
- * @param   {String}    date_netsuite    ex: '4/6/2020'
- * @returns {String}    date            ex: '2020-06-04'
+ * Used to set the value of the date input fields.
+ * @param   {String} date_netsuite  "1/6/2020"
+ * @returns {String} date_iso       "2020-06-01"
  */
-function dateNetsuite2DateSelectedFormat(date_netsuite) {
-    if (isNullorEmpty(date_netsuite)) {
-        return '';
-    } else {
-        // date_netsuite = '4/6/2020'
-        var date_array = date_netsuite.split('/');
-        // date_array = ["4", "6", "2020"]
-        var year = date_array[2];
-        var month = date_array[1];
-        if (month < 10) {
-            month = '0' + month;
-        }
-        var day = date_array[0];
-        if (day < 10) {
-            day = '0' + day;
-        }
-        return year + '-' + month + '-' + day;
+function dateNetsuiteToISO(date_netsuite) {
+    var date_iso = '';
+    if (!isNullorEmpty(date_netsuite)) {
+        var date = nlapiStringToDate(date_netsuite);
+        var date_day = date.getDate();
+        var date_month = date.getMonth();
+        var date_year = date.getFullYear();
+        var date_utc = new Date(Date.UTC(date_year, date_month, date_day));
+        date_iso = date_utc.toISOString().split('T')[0];
     }
+    return date_iso;
 }
 
 /**
