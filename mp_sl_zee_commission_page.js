@@ -25,13 +25,6 @@ if (userRole == 1000) {
     zee_id = ctx.getUser();
 }
 
-// For test
-/*
-var userRole = 1000;
-zee_id = '215';
-zee_name = 'Alexandria';
-*/
-
 function showCommissions(request, response) {
     if (request.getMethod() == "GET") {
 
@@ -39,6 +32,7 @@ function showCommissions(request, response) {
         var date_from = '';
         var date_to = '';
         var timestamp = '';
+        var is_params = 'F';
 
         if (userRole == 1000) {
             [date_from, date_to] = getLastMonthDates();
@@ -47,6 +41,7 @@ function showCommissions(request, response) {
         // Load params
         var params = request.getParameter('custparam_params');
         if (!isNullorEmpty(params)) {
+            is_params = 'T';
             params = JSON.parse(params);
             zee_id = parseInt(params.zee_id);
             date_from = params.date_from;
@@ -60,7 +55,7 @@ function showCommissions(request, response) {
         nlapiLogExecution('DEBUG', 'date_from after param', date_from);
         nlapiLogExecution('DEBUG', 'date_to after param', date_to);
 
-        if (!isNullorEmpty(zee_id)) {
+        if (!isNullorEmpty(zee_id) && (is_params == 'T')) {
             var zeeRecord = nlapiLoadRecord('partner', zee_id);
             var zee_name = zeeRecord.getFieldValue('companyname');
             timestamp = Date.now().toString();
@@ -116,6 +111,7 @@ function showCommissions(request, response) {
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         form.addField('custpage_timestamp', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(timestamp);
+        form.addField('custpage_is_params', 'text', 'Is params').setDisplayType('hidden').setDefaultValue(is_params);
         form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);

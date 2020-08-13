@@ -27,13 +27,6 @@ if (userRole == 1000) {
 // load_record_interval is a global var so that the function clearInterval() can be called anywhere in the code.
 var load_record_interval;
 
-// For test
-/*
-var userRole = 1000;
-zee_id = '215';
-zee_name = 'Alexandria';
-*/
-
 function pageInit() {
     $('div.col-xs-12.commission_table_div').html(commissionTable());
 
@@ -44,11 +37,13 @@ function pageInit() {
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
     var timestamp = nlapiGetFieldValue('custpage_timestamp');
+    var is_params = nlapiGetFieldValue('custpage_is_params');
     console.log('Parameters on pageInit : ', {
         'zee_id': zee_id,
         'date_from': date_from,
         'date_to': date_to,
-        'timestamp': timestamp
+        'timestamp': timestamp,
+        'is_params': is_params
     });
 
     var date_from_iso = dateNetsuiteToISO(date_from);
@@ -60,8 +55,13 @@ function pageInit() {
     if (!isNullorEmpty(date_to_iso)) {
         $('#date_to').val(date_to_iso);
     }
-    if (!isNullorEmpty(zee_id) || !isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+    // if (!isNullorEmpty(zee_id) || !isNullorEmpty(date_from) || !isNullorEmpty(date_to)) {
+    if (is_params == 'T') {
+        console.log('(is_params == "T")', (is_params == 'T'), 'will call loadCommissionTable()');
         loadCommissionTable();
+    } else if (is_params == 'F' && userRole == 1000) {
+        console.log("(is_params == 'F' && userRole == 1000)", (is_params == 'F' && userRole == 1000), 'will call reloadPageWithParams()');
+        reloadPageWithParams();
     }
     if (!isNullorEmpty($('#period_dropdown option:selected').val())) {
         selectDate();
