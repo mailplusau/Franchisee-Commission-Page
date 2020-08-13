@@ -161,6 +161,9 @@ function loadDatatable() {
                     }
                 }
                 var bill_number = billResult.getValue('invoicenum');
+                if (userRole != 1000) {
+                    bill_number = '<a href="' + baseURL + '/app/accounting/transactions/vendbill.nl?id=' + bill_id + '">' + bill_number + '</a>';
+                }
 
                 // For the positive commission, check that the paid amount equals the commission amount.
                 // If not, the cell background will be colored in red.
