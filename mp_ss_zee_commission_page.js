@@ -89,7 +89,7 @@ function calculateCommissions() {
                 var invoice_id = billResult.getValue('custbody_invoice_reference');
                 var bill_number = billResult.getValue('invoicenum');
                 var invoice_type = billResult.getValue('custbody_related_inv_type');
-                var invoice_status = billResult.getValue('statusref');
+                var invoice_status = billResult.getValue('custbody_invoice_status');
 
                 // Revenues
                 var total_amount = parseFloat(billResult.getValue('custbody_invoicetotal'));
@@ -102,7 +102,7 @@ function calculateCommissions() {
                 if (isNullorEmpty(invoice_type)) { // Services
 
                     switch (invoice_status) {
-                        case 'open':        // unpaid
+                        case 'Open':        // unpaid
                             unpaid_services_revenues_tax += revenue_tax;
                             unpaid_services_commissions_tax += tax_commission;
                             unpaid_services_revenues_total += total_amount;
@@ -110,7 +110,7 @@ function calculateCommissions() {
                             nb_unpaid_services += 1;
                             break;
 
-                        case 'paidInFull':  // paid
+                        case 'Paid In Full':  // paid
                             paid_services_revenues_tax += revenue_tax;
                             paid_services_commissions_tax += tax_commission;
                             paid_services_revenues_total += total_amount;
@@ -144,7 +144,7 @@ function calculateCommissions() {
                     })
 
                     switch (invoice_status) {
-                        case 'open':        // unpaid
+                        case 'Open':        // unpaid
                             unpaid_products_revenues_tax += revenue_tax;
                             unpaid_products_commissions_tax += tax_commission;
                             unpaid_products_revenues_total += total_amount;
@@ -156,7 +156,7 @@ function calculateCommissions() {
                             nb_unpaid_products += 1;
                             break;
 
-                        case 'paidInFull':  // paid
+                        case 'Paid In Full':  // paid
                             paid_products_revenues_tax += revenue_tax;
                             paid_products_commissions_tax += tax_commission;
                             paid_products_revenues_total += total_amount;
