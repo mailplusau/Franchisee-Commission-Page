@@ -183,7 +183,7 @@ function loadDatatable() {
                     }
                 }
 
-                var invoice_status = billResult.getText('statusref');
+                var invoice_status = billResult.getValue('custbody_invoice_status');
 
                 invoice_date = dateNetsuite2DateSelectedFormat(invoice_date);
                 total_revenue = financial(total_revenue);
