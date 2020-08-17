@@ -527,9 +527,9 @@ function commissionTable() {
     inlineQty += '<th scope="col" id="table_revenue">Revenue (excl. GST)</th>';
     inlineQty += '<th scope="col" id="table_revenue_tax">Tax</th>';
     inlineQty += '<th scope="col" id="table_revenue_total">Revenue (incl. GST)</th>';
-    inlineQty += '<th scope="col" id="table_commission">Commission (excl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_commission">Service Revenue / Commission (excl. GST)</th>';
     inlineQty += '<th scope="col" id="table_commission_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_commission_total">Commission (incl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_commission_total">Service Revenue / Commission (incl. GST)</th>';
     inlineQty += '</tr>';
     inlineQty += '</thead>';
     inlineQty += '<tbody>';
