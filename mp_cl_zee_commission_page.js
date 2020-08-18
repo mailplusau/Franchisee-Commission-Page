@@ -515,11 +515,12 @@ function commissionTable() {
     // Sum rows
     inlineQty += '.sum_row [headers=table_title], .sum_row [headers=table_revenue_total], .sum_row [headers=table_commission_total] {font-size: medium;}';
 
-    // 'Number of invoices' values
+    // Center 'Number of invoices' column
+    inlineQty += '#table_nb_invoices {text-align: center;}';
     inlineQty += 'tbody [headers=table_nb_invoices] {text-align: center;}';
 
-    // Price values
-    inlineQty += '.price {text-align: right;}';
+    // Right-align price values
+    inlineQty += '.price, .price_header {text-align: right;}';
 
     // Headers cells
     inlineQty += '#commission_table th {font-weight: bold;}';
@@ -533,12 +534,12 @@ function commissionTable() {
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
     inlineQty += '<th scope="col" id="table_nb_invoices">Number of invoices</th>';
-    inlineQty += '<th scope="col" id="table_revenue">Revenue<br><span class="incl_excl_gst">[excl. GST]</span></th>';
-    inlineQty += '<th scope="col" id="table_revenue_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_revenue_total">Revenue<br><span class="incl_excl_gst">[incl. GST]</span></th>';
-    inlineQty += '<th scope="col" id="table_commission">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>';
-    inlineQty += '<th scope="col" id="table_commission_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_commission_total">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>';
+    inlineQty += '<th scope="col" id="table_revenue" class="price_header">Revenue<br><span class="incl_excl_gst">[excl. GST]</span></th>';
+    inlineQty += '<th scope="col" id="table_revenue_tax" class="price_header">Tax</th>';
+    inlineQty += '<th scope="col" id="table_revenue_total" class="price_header">Revenue<br><span class="incl_excl_gst">[incl. GST]</span></th>';
+    inlineQty += '<th scope="col" id="table_commission" class="price_header">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>';
+    inlineQty += '<th scope="col" id="table_commission_tax" class="price_header">Tax</th>';
+    inlineQty += '<th scope="col" id="table_commission_total" class="price_header">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>';
     inlineQty += '</tr>';
     inlineQty += '</thead>';
     inlineQty += '<tbody>';
@@ -609,10 +610,10 @@ function operatorTable(operator_dict) {
     inlineQty += '<table class="table" id="operator_table">'
     inlineQty += '<thead>'
     inlineQty += '<tr>'
-    inlineQty += '<th scope="col" id="table_operator_title"></th>'
-    inlineQty += '<th scope="col" id="table_operator_commission">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>'
-    inlineQty += '<th scope="col" id="table_operator_commission_tax">Tax</th>'
-    inlineQty += '<th scope="col" id="table_operator_commission_total">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>'
+    inlineQty += '<th scope="col" id="table_operator_title" class="price_header"></th>'
+    inlineQty += '<th scope="col" id="table_operator_commission" class="price_header">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_tax" class="price_header">Tax</th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_total" class="price_header">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>'
     inlineQty += '</tr>'
     inlineQty += '</thead>'
     inlineQty += '<tbody id="operator_results">'

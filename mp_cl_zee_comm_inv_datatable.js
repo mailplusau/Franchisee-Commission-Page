@@ -217,6 +217,7 @@ function loadBillSearch() {
     var paid = nlapiGetFieldValue('custpage_paid');
 
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
+
     var billFilterExpression = billSearch.getFilterExpression();
     billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
 
@@ -255,8 +256,8 @@ function loadBillSearch() {
  * @param {Array} billsDataSet The `billsDataSet` created in `loadDatatable()`.
  */
 function saveCsv(billsDataSet) {
-    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function(x) {return x.innerText});
-    headers = headers.slice(0, headers.length -1).join(', ');
+    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function (x) { return x.innerText });
+    headers = headers.slice(0, headers.length - 1).join(', ');
     var csv = headers + "\n";
     billsDataSet.forEach(function (row, index) {
         row[0] = $.parseHTML(row[0])[0].text;
