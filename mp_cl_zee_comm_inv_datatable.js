@@ -216,9 +216,13 @@ function loadBillSearch() {
     var type = nlapiGetFieldValue('custpage_type');
     var paid = nlapiGetFieldValue('custpage_paid');
 
-    var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
+    var search_id = (userRole == 1000) ? 'customsearch_zee_commission_page_zee' : 'customsearch_zee_commission_page';
+    var billSearch = nlapiLoadSearch('vendorbill', search_id);
+    
     var billFilterExpression = billSearch.getFilterExpression();
-    billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
+    if (userRole == 1000) {
+        billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
+    }
 
     // Date filter
     if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
