@@ -27,11 +27,11 @@ function pageInit() {
     var date_to = nlapiGetFieldValue('custpage_date_to');
 
     if (!isNullorEmpty(date_from)) {
-        date_from_input = dateFilter2DateSelected(date_from);
+        date_from_input = dateNetsuiteToISO(date_from);
         $('#date_from').val(date_from_input);
     }
     if (!isNullorEmpty(date_to)) {
-        date_to_input = dateFilter2DateSelected(date_to);
+        date_to_input = dateNetsuiteToISO(date_to);
         $('#date_to').val(date_to_input);
     }
 
@@ -200,6 +200,8 @@ function loadDatatable() {
     datatable.rows.add(billsDataSet);
     datatable.draw();
 
+    saveCsv(billsDataSet);
+
     return true;
 }
 
@@ -249,6 +251,77 @@ function loadBillSearch() {
 }
 
 /**
+ * Create the CSV and store it in the hidden field 'custpage_table_csv' as a string.
+ * @param {Array} billsDataSet The `billsDataSet` created in `loadDatatable()`.
+ */
+function saveCsv(billsDataSet) {
+    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function(x) {return x.innerText});
+    headers = headers.slice(0, headers.length -1).join(', ');
+    var csv = headers + "\n";
+    billsDataSet.forEach(function (row, index) {
+        row[0] = $.parseHTML(row[0])[0].text;
+        row[3] = financialToNumber(row[3]);
+        row[4] = financialToNumber(row[4]);
+        row[6] = $.parseHTML(row[6])[0].text;
+        if (index < 5) {
+            console.log('row :', row);
+        }
+        csv += row.join(',');
+        csv += "\n";
+    });
+    nlapiSetFieldValue('custpage_table_csv', csv);
+
+    return true;
+}
+
+/**
+* Load the string stored in the hidden field 'custpage_table_csv'.
+* Converts it to a CSV file.
+* Creates a hidden link to download the file and triggers the click of the link.
+*/
+function downloadCsv() {
+    var csv = nlapiGetFieldValue('custpage_table_csv');
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style = "display: none";
+    var content_type = 'text/csv';
+    var csvFile = new Blob([csv], { type: content_type });
+    var url = window.URL.createObjectURL(csvFile);
+    var filename = 'invoices_' + getCsvName() + '.csv';
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+/**
+ * - The franchisee name `zee_name` in lowercase and separated by an underscore.
+ * - the `type` selector ('services', 'products' or nothing).
+ * - the `paid` selector ('paid', 'unpaid' or nothing).
+ * - the `date_from` date
+ * - the `date_to` date
+ * @return  {String} 
+ */
+function getCsvName() {
+    var zee_name = nlapiGetFieldValue('custpage_zee_name');
+    zee_name = zee_name.trim().toLowerCase().split(' ').join('_');
+
+    var date_from = nlapiGetFieldValue('custpage_date_from');
+    var date_to = nlapiGetFieldValue('custpage_date_to');
+
+    var type = nlapiGetFieldValue('custpage_type');
+    var type_title = (type == 'services' || type == 'products') ? type : '';
+
+    var paid = nlapiGetFieldValue('custpage_paid');
+    var paid_title = (paid == 'paid' || paid == 'unpaid') ? paid : '';
+
+    var type_paid_title = (type_title == '' && paid_title == '') ? '' : '_' + type_title + '_' + paid_title;
+
+    var csv_name = zee_name + type_paid_title + '_from_' + date_from + '_to_' + date_to;
+    return csv_name;
+}
+
+/**
  * @param   {Number} x
  * @returns {String} The same number, formatted in Australian dollars.
  */
@@ -258,6 +331,18 @@ function financial(x) {
     } else {
         return x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
     }
+}
+
+/**
+ * Converts a price string (as returned by the function `financial()`) to a String readable as a Number object
+ * @param   {String} price $4,138.47
+ * @returns {String} 4138.47
+ */
+function financialToNumber(price) {
+    // Matches the '$' and ',' symbols.
+    var re = /\$|\,/g;
+    // Replaces all the matched symbols with the empty string ''.
+    return price.replace(re, '');
 }
 
 /**
@@ -276,23 +361,4 @@ function dateNetsuiteToISO(date_netsuite) {
         date_iso = date_utc.toISOString().split('T')[0];
     }
     return date_iso;
-}
-
-/**
- * Converts the parameters "date_from" and "date_to" to a correct format for the date input field.
- * @param   {String}    date_filter     ex: "04/06/2020"
- * @returns {String}    date_selected   ex: "2020-06-04"
- */
-function dateFilter2DateSelected(date_filter) {
-    var date_selected = '';
-    if (!isNullorEmpty(date_filter)) {
-        // date_selected = "04/06/2020"
-        var date_array = date_filter.split('/');
-        // date_array = ["04", "06", "2020"]
-        var year = date_array[2];
-        var month = date_array[1];
-        var day = date_array[0];
-        date_selected = year + '-' + month + '-' + day;
-    }
-    return date_selected;
 }

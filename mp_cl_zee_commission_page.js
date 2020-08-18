@@ -476,12 +476,12 @@ function selectDate() {
  */
 function tableRowCells() {
     var inlineQty = '<td headers="table_nb_invoices"></td>';
-    inlineQty += '<td headers="table_revenue"></td>';
-    inlineQty += '<td headers="table_revenue_tax"></td>';
-    inlineQty += '<td headers="table_revenue_total"></td>';
-    inlineQty += '<td headers="table_commission"></td>';
-    inlineQty += '<td headers="table_commission_tax"></td>';
-    inlineQty += '<td headers="table_commission_total"></td>';
+    inlineQty += '<td headers="table_revenue" class="price"></td>';
+    inlineQty += '<td headers="table_revenue_tax" class="price"></td>';
+    inlineQty += '<td headers="table_revenue_total" class="price"></td>';
+    inlineQty += '<td headers="table_commission" class="price"></td>';
+    inlineQty += '<td headers="table_commission_tax" class="price"></td>';
+    inlineQty += '<td headers="table_commission_total" class="price"></td>';
 
     return inlineQty;
 }
@@ -509,8 +509,17 @@ function commissionTable() {
     inlineQty += '.products_row.paid_row {background-color: rgba(163, 218, 80, 0.5);}';
     inlineQty += '.products_row.unpaid_row {background-color: rgba(163, 218, 80, 0.2);}';
 
+    // Inclusive and Exclusive of GST headers
+    inlineQty += '.incl_excl_gst {font-size: x-small;}';
+
     // Sum rows
     inlineQty += '.sum_row [headers=table_title], .sum_row [headers=table_revenue_total], .sum_row [headers=table_commission_total] {font-size: medium;}';
+
+    // 'Number of invoices' values
+    inlineQty += 'tbody [headers=table_nb_invoices] {text-align: center;}';
+
+    // Price values
+    inlineQty += '.price {text-align: right;}';
 
     // Headers cells
     inlineQty += '#commission_table th {font-weight: bold;}';
@@ -524,12 +533,12 @@ function commissionTable() {
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
     inlineQty += '<th scope="col" id="table_nb_invoices">Number of invoices</th>';
-    inlineQty += '<th scope="col" id="table_revenue">Revenue (excl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_revenue">Revenue<br><span class="incl_excl_gst">[excl. GST]</span></th>';
     inlineQty += '<th scope="col" id="table_revenue_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_revenue_total">Revenue (incl. GST)</th>';
-    inlineQty += '<th scope="col" id="table_commission">Commission (excl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_revenue_total">Revenue<br><span class="incl_excl_gst">[incl. GST]</span></th>';
+    inlineQty += '<th scope="col" id="table_commission">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>';
     inlineQty += '<th scope="col" id="table_commission_tax">Tax</th>';
-    inlineQty += '<th scope="col" id="table_commission_total">Commission (incl. GST)</th>';
+    inlineQty += '<th scope="col" id="table_commission_total">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>';
     inlineQty += '</tr>';
     inlineQty += '</thead>';
     inlineQty += '<tbody>';
@@ -601,9 +610,9 @@ function operatorTable(operator_dict) {
     inlineQty += '<thead>'
     inlineQty += '<tr>'
     inlineQty += '<th scope="col" id="table_operator_title"></th>'
-    inlineQty += '<th scope="col" id="table_operator_commission">Commission (excl. GST)</th>'
+    inlineQty += '<th scope="col" id="table_operator_commission">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>'
     inlineQty += '<th scope="col" id="table_operator_commission_tax">Tax</th>'
-    inlineQty += '<th scope="col" id="table_operator_commission_total">Commission (incl. GST)</th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_total">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>'
     inlineQty += '</tr>'
     inlineQty += '</thead>'
     inlineQty += '<tbody id="operator_results">'
@@ -624,21 +633,21 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row sum_row">';
         inlineQty += '<th scope="row" headers="table_operator_title">' + operator_name + '</th >'
-        inlineQty += '<td headers="table_operator_commission">' + sum_row[0] + '</td>'
-        inlineQty += '<td headers="table_operator_commission_tax">' + sum_row[1] + '</td>'
-        inlineQty += '<td headers="table_operator_commission_total">' + sum_row[2] + '</td>'
+        inlineQty += '<td headers="table_operator_commission" class="price">' + sum_row[0] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_tax" class="price">' + sum_row[1] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_total" class="price">' + sum_row[2] + '</td>'
         inlineQty += '</tr>'
         inlineQty += '<tr class="' + operator_id + '_row paid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Paid</th>'
-        inlineQty += '<td headers="table_operator_commission">' + paid_row[0] + '</td>'
-        inlineQty += '<td headers="table_operator_commission_tax">' + paid_row[1] + '</td>'
-        inlineQty += '<td headers="table_operator_commission_total">' + paid_row[2] + '</td>'
+        inlineQty += '<td headers="table_operator_commission" class="price">' + paid_row[0] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_tax" class="price">' + paid_row[1] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_total" class="price">' + paid_row[2] + '</td>'
         inlineQty += '</tr>'
         inlineQty += '<tr class="' + operator_id + '_row unpaid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Unpaid</th>'
-        inlineQty += '<td headers="table_operator_commission">' + unpaid_row[0] + '</td>'
-        inlineQty += '<td headers="table_operator_commission_tax">' + unpaid_row[1] + '</td>'
-        inlineQty += '<td headers="table_operator_commission_total">' + unpaid_row[2] + '</td>'
+        inlineQty += '<td headers="table_operator_commission" class="price">' + unpaid_row[0] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_tax" class="price">' + unpaid_row[1] + '</td>'
+        inlineQty += '<td headers="table_operator_commission_total" class="price">' + unpaid_row[2] + '</td>'
         inlineQty += '</tr>'
     });
 

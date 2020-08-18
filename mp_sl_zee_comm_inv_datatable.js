@@ -101,12 +101,15 @@ function showInvoicesList(request, response) {
         inlineHtml += dataTablePreview();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
-        form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id);
+        form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id.toString());
+        form.addField('custpage_zee_name', 'text', 'Franchisee Name').setDisplayType('hidden').setDefaultValue(zee_name);
         form.addField('custpage_date_from', 'text', 'Date from').setDisplayType('hidden').setDefaultValue(date_from);
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         form.addField('custpage_type', 'text', 'Type').setDisplayType('hidden').setDefaultValue(type);
         form.addField('custpage_paid', 'text', 'Paid').setDisplayType('hidden').setDefaultValue(paid);
+        form.addField('custpage_table_csv', 'text', 'Table CSV').setDisplayType('hidden');
         form.addButton('custpage_back', 'Back', 'onBack()');
+        form.addButton('download_csv', 'Export as CSV', 'downloadCsv()');
         form.setScript('customscript_cl_zee_comm_inv_datatable');
         response.writePage(form);
     } else {
