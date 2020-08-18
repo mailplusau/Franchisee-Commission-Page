@@ -18,13 +18,25 @@ if (nlapiGetContext().getEnvironment() == "SANDBOX") {
 
 var ctx = nlapiGetContext();
 var userRole = parseInt(ctx.getRole());
+var zee_id = '';
 if (userRole == 1000) {
-    var zee_id = ctx.getUser();
+    zee_id = ctx.getUser();
 }
+// load_record_interval is a global var so that the function clearInterval() can be called anywhere in the code.
+var load_record_interval;
 
 function pageInit() {
+    if (userRole != 1000) {
+        var param_zee_id = nlapiGetFieldValue('custpage_zee_id');
+        if (!isNullorEmpty(param_zee_id)) {
+            zee_id = parseInt(param_zee_id);
+        }
+    }
     var date_from = nlapiGetFieldValue('custpage_date_from');
     var date_to = nlapiGetFieldValue('custpage_date_to');
+    var type = nlapiGetFieldValue('custpage_type');
+    var paid = nlapiGetFieldValue('custpage_paid');
+    var timestamp = nlapiGetFieldValue('custpage_timestamp');
 
     if (!isNullorEmpty(date_from)) {
         date_from_input = dateNetsuiteToISO(date_from);
@@ -35,7 +47,8 @@ function pageInit() {
         $('#date_to').val(date_to_input);
     }
 
-    loadDatatable();
+    load_record_interval = setInterval(loadZCIDRecord, 15000, zee_id, date_from, date_to, type, paid, timestamp);
+    // loadDatatable();
 }
 
 var billsDataSet = [];
@@ -117,6 +130,49 @@ function onBack() {
     params = JSON.stringify(params);
     var upload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_zee_commission_page', 'customdeploy_sl_zee_commission_page') + '&custparam_params=' + encodeURIComponent(params);
     window.open(upload_url, "_self", "height=750,width=650,modal=yes,alwaysRaised=yes");
+}
+
+/**
+ * "ZCID record" stands for "Zee Commission Invoice Datatable". ('customrecord_zee_comm_inv_datatable')
+ * This record contains the results of the search, and is calculated with the scheduled script 'mp_ss_zee_comm_inv_datatable'.
+ * @param {Number} zee_id 
+ * @param {String} date_from 
+ * @param {String} date_to
+ * @param {String} type 
+ * @param {String} paid
+ * @param {Number} timestamp
+ */
+function loadZCIDRecord(zee_id, date_from, date_to, type, paid, timestamp) {
+    // Date from
+    if (!isNullorEmpty(date_from)) {
+        zcpFilterExpression[0] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'on', date_from);
+    } else {
+        zcpFilterExpression[0] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'isempty', '');
+    }
+    // Date to
+    if (!isNullorEmpty(date_to)) {
+        zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_zcid_date_to', null, 'on', date_to);
+    } else {
+        zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_zcid_date_to', null, 'isempty', '');
+    }
+    // Zee ID
+    zcpFilterExpression[2] = new nlobjSearchFilter('custrecord_zcid_zee_id', null, 'is', zee_id);
+    // Type
+    if (!isNullorEmpty(type)) {
+        zcpFilterExpression[3] = new nlobjSearchFilter('custrecord_zcid_type', null, 'is', type);
+    } else {
+        zcpFilterExpression[3] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'isempty', '');
+    }
+    // Paid
+    if (!isNullorEmpty(paid)) {
+        zcpFilterExpression[4] = new nlobjSearchFilter('custrecord_zcid_paid', null, 'is', paid);
+    } else {
+        zcpFilterExpression[4] = new nlobjSearchFilter('custrecord_zcid_paid', null, 'isempty', '');
+    }
+    // Timestamp
+    zcpFilterExpression[5] = new nlobjSearchFilter('custrecord_zcid_timestamp', null, 'is', timestamp);
+    // Create search and load results
+    // Pass results as arguments for load Datatable
 }
 
 function loadDatatable() {
