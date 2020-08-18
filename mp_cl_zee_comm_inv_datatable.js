@@ -220,7 +220,7 @@ function loadBillSearch() {
     var billSearch = nlapiLoadSearch('vendorbill', search_id);
     
     var billFilterExpression = billSearch.getFilterExpression();
-    if (userRole == 1000) {
+    if (userRole != 1000) {
         billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
     }
 
