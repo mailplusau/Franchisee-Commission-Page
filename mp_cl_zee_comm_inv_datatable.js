@@ -216,13 +216,10 @@ function loadBillSearch() {
     var type = nlapiGetFieldValue('custpage_type');
     var paid = nlapiGetFieldValue('custpage_paid');
 
-    // var search_id = (userRole == 1000) ? 'customsearch_zee_commission_page' : 'customsearch_zee_commission_page';
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
-    
+
     var billFilterExpression = billSearch.getFilterExpression();
-    //if (userRole == 1000) {
-        billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
-    // }
+    billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
 
     // Date filter
     if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
@@ -259,8 +256,8 @@ function loadBillSearch() {
  * @param {Array} billsDataSet The `billsDataSet` created in `loadDatatable()`.
  */
 function saveCsv(billsDataSet) {
-    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function(x) {return x.innerText});
-    headers = headers.slice(0, headers.length -1).join(', ');
+    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function (x) { return x.innerText });
+    headers = headers.slice(0, headers.length - 1).join(', ');
     var csv = headers + "\n";
     billsDataSet.forEach(function (row, index) {
         row[0] = $.parseHTML(row[0])[0].text;
