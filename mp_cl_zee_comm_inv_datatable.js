@@ -48,7 +48,6 @@ function pageInit() {
     }
 
     load_record_interval = setInterval(loadZCIDRecord, 15000, zee_id, date_from, date_to, type, paid, timestamp);
-    // loadDatatable();
 }
 
 var billsDataSet = [];
@@ -143,110 +142,121 @@ function onBack() {
  * @param {Number} timestamp
  */
 function loadZCIDRecord(zee_id, date_from, date_to, type, paid, timestamp) {
+    var zcidFilterExpression = [];
     // Date from
     if (!isNullorEmpty(date_from)) {
-        zcpFilterExpression[0] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'on', date_from);
+        zcidFilterExpression[0] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'on', date_from);
     } else {
-        zcpFilterExpression[0] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'isempty', '');
+        zcidFilterExpression[0] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'isempty', '');
     }
     // Date to
     if (!isNullorEmpty(date_to)) {
-        zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_zcid_date_to', null, 'on', date_to);
+        zcidFilterExpression[1] = new nlobjSearchFilter('custrecord_zcid_date_to', null, 'on', date_to);
     } else {
-        zcpFilterExpression[1] = new nlobjSearchFilter('custrecord_zcid_date_to', null, 'isempty', '');
+        zcidFilterExpression[1] = new nlobjSearchFilter('custrecord_zcid_date_to', null, 'isempty', '');
     }
     // Zee ID
-    zcpFilterExpression[2] = new nlobjSearchFilter('custrecord_zcid_zee_id', null, 'is', zee_id);
+    zcidFilterExpression[2] = new nlobjSearchFilter('custrecord_zcid_zee_id', null, 'is', zee_id);
     // Type
     if (!isNullorEmpty(type)) {
-        zcpFilterExpression[3] = new nlobjSearchFilter('custrecord_zcid_type', null, 'is', type);
+        zcidFilterExpression[3] = new nlobjSearchFilter('custrecord_zcid_type', null, 'is', type);
     } else {
-        zcpFilterExpression[3] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'isempty', '');
+        zcidFilterExpression[3] = new nlobjSearchFilter('custrecord_zcid_date_from', null, 'isempty', '');
     }
     // Paid
     if (!isNullorEmpty(paid)) {
-        zcpFilterExpression[4] = new nlobjSearchFilter('custrecord_zcid_paid', null, 'is', paid);
+        zcidFilterExpression[4] = new nlobjSearchFilter('custrecord_zcid_paid', null, 'is', paid);
     } else {
-        zcpFilterExpression[4] = new nlobjSearchFilter('custrecord_zcid_paid', null, 'isempty', '');
+        zcidFilterExpression[4] = new nlobjSearchFilter('custrecord_zcid_paid', null, 'isempty', '');
     }
     // Timestamp
-    zcpFilterExpression[5] = new nlobjSearchFilter('custrecord_zcid_timestamp', null, 'is', timestamp);
+    zcidFilterExpression[5] = new nlobjSearchFilter('custrecord_zcid_timestamp', null, 'is', timestamp);
+
     // Create search and load results
-    // Pass results as arguments for load Datatable
+    var zcidSearch = nlapiLoadSearch('customrecord_zee_comm_inv_datatable', 'customsearch_zee_comm_inv_datatable');
+    zcidSearch.setFilters(zcidFilterExpression);
+    var zcidSearchResults = zcidSearch.runSearch();
+    var zcidSearchResult = zcidSearchResults.getResults(0, 1);
+    if (!isNullorEmpty(zcidSearchResult)) {
+        var zcidRecord = zcidSearchResult[0];
+        var invoices_rows = JSON.parse(zcidRecord.getValue('custrecord_zcid_invoices_rows'));
+        var bills_id_set = JSON.parse(zcidRecord.getValue('custrecord_zcid_bills_id_set'));
+        var customer_name_dict = JSON.parse(zcidRecord.getValue('custrecord_zcid_customer_name_dict'));
+        loadDatatable(invoices_rows, bills_id_set, customer_name_dict);
+    }
 }
 
-function loadDatatable() {
-    var billResultSet = loadBillSearch();
-
+/**
+ * 
+ * @param {Array}   invoices_rows 
+ * @param {Array}   bills_id_set 
+ * @param {Object}  customer_name_dict 
+ */
+function loadDatatable(invoices_rows, bills_id_set, customer_name_dict) {
     $('#result_bills').empty();
     var billsDataSet = [];
 
-    // Because the invoice_date value is retrieved, and it's an invoice related field,
-    // each result is shown three times in the billResultSet.
-    // Thus, a set is used to make sure we display each result only once.
-    var bills_id_set = new Set();
-
-    if (!isNullorEmpty(billResultSet)) {
-        billResultSet.forEachResult(function (billResult) {
-            var bill_id = billResult.getValue('tranid');
-            if (!bills_id_set.has(bill_id)) {
-                bills_id_set.add(bill_id);
-                console.log('billResult : ', billResult);
-
-                var invoice_number = billResult.getText('custbody_invoice_reference');
-                var invoice_id = billResult.getValue('custbody_invoice_reference');
-                var invoice_link = '<a href="' + baseURL + '/app/accounting/transactions/custinvc.nl?id=' + invoice_id + '">' + invoice_number + '</a>'
-                var invoice_date = billResult.getValue('custbody_invoice_reference_trandate');
-                var customer_name = billResult.getText('custbody_invoice_customer');
-                var total_revenue = parseFloat(billResult.getValue('custbody_invoicetotal'));
-                var total_commission = parseFloat(billResult.getValue('amount'));
-                var invoice_type = billResult.getValue('custbody_related_inv_type');
-                if (isNullorEmpty(invoice_type)) {
+    if (!isNullorEmpty(invoices_rows)) {
+        invoices_rows.forEach(function (invoice_row, index_ir) {
+            if (index_ir < 5) {
+                console.log('invoice_row :', invoice_row);
+            }
+            var invoice_number = 'Invoice #INV' + invoice_row.in;
+            var invoice_id = invoice_row.inid;
+            var invoice_link = '<a href="' + baseURL + '/app/accounting/transactions/custinvc.nl?id=' + invoice_id + '">' + invoice_number + '</a>'
+            var invoice_date = dateNetsuiteToISO(invoice_row.id);
+            var customer_id = invoice_row.ci;
+            var customer_name = customer_name_dict[customer_id];
+            var total_revenue = invoice_row.tr;
+            var total_commission = invoice_row.tc;
+            var invoice_type = '';
+            switch (invoice_row.it) {
+                case 'S':
                     invoice_type = 'Services';
                     invoice_number = invoice_link;
-                } else {
+                    break;
+                case 'P':
                     invoice_type = 'Products';
                     if (userRole != 1000) {
                         invoice_number = invoice_link;
                     }
-                }
-                var bill_number = billResult.getValue('invoicenum');
-                if (userRole != 1000) {
-                    bill_number = '<a href="' + baseURL + '/app/accounting/transactions/vendbill.nl?id=' + bill_id + '">' + bill_number + '</a>';
-                }
-
-                // For the positive commission, check that the paid amount equals the commission amount.
-                // If not, the cell background will be colored in red.
-                var bill_payment_id = '';
-                var bill_payment = '';
-                var bill_payment_date = '';
-                var paid_amount_is_total_commission = '';
-                if (total_commission > 0) {
-                    var billRecord = nlapiLoadRecord('vendorbill', bill_id);
-                    var lineitems = billRecord.lineitems;
-                    if (!isNullorEmpty(lineitems.links)) {
-                        var lineitems_links_1 = lineitems.links[1];
-                        var paid_amount = lineitems_links_1.total;
-                        bill_payment_id = lineitems_links_1.id;
-                        bill_payment = 'Bill #' + bill_payment_id;
-                        bill_payment_date = lineitems_links_1.trandate;
-                        paid_amount_is_total_commission = (paid_amount == total_commission);
-                    } else {
-                        console.log('lineitems.expense : ', lineitems.expense);
-                    }
-                }
-
-                var invoice_status = billResult.getValue('custbody_invoice_status');
-                var invoice_date_paid = billResult.getValue('custbody_date_invoice_paid');
-
-                invoice_date = dateNetsuiteToISO(invoice_date);
-                total_revenue = financial(total_revenue);
-                total_commission = financial(total_commission);
-                bill_payment_date = dateNetsuiteToISO(bill_payment_date);
-                invoice_date_paid = dateNetsuiteToISO(invoice_date_paid);
-                billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_date_paid, invoice_status, paid_amount_is_total_commission]);
+                    break;
+                default:
+                    break;
             }
-            return true;
+            var bill_id = invoice_row.bi;
+            var bill_number = 'Bill #' + bill_id;
+            if (userRole != 1000) {
+                bill_number = '<a href="' + baseURL + '/app/accounting/transactions/vendbill.nl?id=' + bill_id + '">' + bill_number + '</a>';
+            }
+
+            // For the positive commission, check that the paid amount equals the commission amount.
+            // If not, the cell background will be colored in red.
+            var bill_payment_id = invoice_row.bpi;
+            var bill_payment = (!isNullorEmpty(bill_payment_id)) ? 'Bill #' + bill_payment_id : '';
+            var bill_payment_date = invoice_row.bpd;
+            var paid_amount_is_total_commission = invoice_row.paitc;
+
+            var invoice_status = '';
+            switch (invoice_row.is) {
+                case 'O':
+                    invoice_status = 'Open';
+                    break;
+                case 'P':
+                    invoice_status = 'Paid In Full';
+                    break;
+                case 'V':
+                    invoice_status = 'Voided';
+                    break;
+                default:
+                    break;
+            }
+            var invoice_date_paid = invoice_row.idp;
+
+            total_revenue = financial(total_revenue);
+            total_commission = financial(total_commission);
+            billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_date_paid, invoice_status, paid_amount_is_total_commission]);
+            // return true;
         });
     }
 
@@ -256,55 +266,11 @@ function loadDatatable() {
     datatable.rows.add(billsDataSet);
     datatable.draw();
 
+    $('.loading_section').addClass('hide');
+    clearInterval(load_record_interval);
     saveCsv(billsDataSet);
 
     return true;
-}
-
-/**
- * Load the result set of the bill records linked to the Franchisee.
- * @return  {nlobjSearchResultSet}  billResultSet
- */
-function loadBillSearch() {
-    var zee_id = parseInt(nlapiGetFieldValue('custpage_zee_id'));
-    var date_from = nlapiGetFieldValue('custpage_date_from');
-    var date_to = nlapiGetFieldValue('custpage_date_to');
-    var type = nlapiGetFieldValue('custpage_type');
-    var paid = nlapiGetFieldValue('custpage_paid');
-
-    var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
-
-    var billFilterExpression = billSearch.getFilterExpression();
-    billFilterExpression.push('AND', ['custbody_related_franchisee', 'anyof', zee_id]);
-
-    // Date filter
-    if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'within', date_from, date_to]);
-    } else if (!isNullorEmpty(date_from) && isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'after', date_from]);
-    } else if (isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
-        billFilterExpression.push('AND', ['trandate', 'before', date_to]);
-    }
-
-    // Invoice type filter
-    if (type == 'products') {
-        billFilterExpression.push('AND', ['custbody_related_inv_type', 'noneof', '@NONE@']);
-    } else if (type == 'services') {
-        billFilterExpression.push('AND', ['custbody_related_inv_type', 'anyof', '@NONE@']);
-    }
-
-    // Invoice status filter
-    if (paid == 'paid') {
-        billFilterExpression.push('AND', ['status', 'anyof', 'VendBill:B']);
-    } else if (paid == 'unpaid') {
-        billFilterExpression.push('AND', ['status', 'anyof', 'VendBill:A']);
-    }
-
-    console.log('billFilterExpression : ', billFilterExpression);
-    billSearch.setFilterExpression(billFilterExpression);
-    var billResultSet = billSearch.runSearch();
-
-    return billResultSet;
 }
 
 /**
@@ -315,14 +281,11 @@ function saveCsv(billsDataSet) {
     var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function (x) { return x.innerText });
     headers = headers.slice(0, headers.length - 1).join(', ');
     var csv = headers + "\n";
-    billsDataSet.forEach(function (row, index) {
+    billsDataSet.forEach(function (row) {
         row[0] = $.parseHTML(row[0])[0].text;
         row[3] = financialToNumber(row[3]);
         row[4] = financialToNumber(row[4]);
         row[6] = $.parseHTML(row[6])[0].text;
-        if (index < 5) {
-            console.log('row :', row);
-        }
         csv += row.join(',');
         csv += "\n";
     });
@@ -383,6 +346,9 @@ function getCsvName() {
  * @returns {String} The same number, formatted in Australian dollars.
  */
 function financial(x) {
+    if (typeof(x) == 'string') {
+        x = parseFloat(x);
+    }
     if (isNullorEmpty(x)) {
         return "$0.00";
     } else {

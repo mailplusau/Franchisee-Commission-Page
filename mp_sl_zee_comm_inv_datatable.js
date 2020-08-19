@@ -121,6 +121,7 @@ function showInvoicesList(request, response) {
 
         inlineHtml += dateFilterSection();
         inlineHtml += dataTablePreview();
+        inlineHtml += loadingSection();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id.toString());
@@ -138,6 +139,21 @@ function showInvoicesList(request, response) {
     } else {
         nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_comm_inv_datatable', 'customdeploy_sl_zee_comm_inv_datatable', null, null);
     }
+}
+
+
+/**
+ * The header showing that the results are loading.
+ * @returns {String} `inlineQty`
+ */
+function loadingSection() {
+    var inlineQty = '<div class="form-group container loading_section" style="text-align:center">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 loading_div">';
+    inlineQty += '<h1>Loading...</h1>';
+    inlineQty += '</div></div></div>';
+
+    return inlineQty;
 }
 
 /**
