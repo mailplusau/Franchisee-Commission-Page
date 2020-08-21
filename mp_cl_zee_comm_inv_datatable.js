@@ -201,9 +201,6 @@ function loadDatatable(invoices_rows, bills_id_set, customer_name_dict) {
 
     if (!isNullorEmpty(invoices_rows)) {
         invoices_rows.forEach(function (invoice_row, index_ir) {
-            if (index_ir < 5) {
-                console.log('invoice_row :', invoice_row);
-            }
             var invoice_number = 'Invoice #INV' + invoice_row.in;
             var invoice_id = invoice_row.inid;
             var invoice_link = '<a href="' + baseURL + '/app/accounting/transactions/custinvc.nl?id=' + invoice_id + '">' + invoice_number + '</a>'
