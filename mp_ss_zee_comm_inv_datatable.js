@@ -23,8 +23,12 @@ var index_in_callback = 0;
 
 function calculateInvoices() {
     // TEST with a paid bill, in order to get the Bill payment id and date
-    // var billRecord = nlapiLoadRecord('vendorbill', 3229787);
-    // nlapiLogExecution('DEBUG', 'JSON.stringify(billRecord) [id:3229787]', JSON.stringify(billRecord));
+    var billRecord = nlapiLoadRecord('vendorbill', 3169336);
+    nlapiLogExecution('DEBUG', 'JSON.stringify(billRecord) [id:3169336]', JSON.stringify(billRecord));
+    // var links = billRecord.links;
+    // var links_0 = billRecord.links[0];
+    // nlapiLogExecution('DEBUG', 'billRecord.links [id:3169336]', JSON.stringify(links));
+    // nlapiLogExecution('DEBUG', 'billRecord.links[0] [id:3169336]', links_0);
     // END TEST
 
     // Script parameters
@@ -98,7 +102,7 @@ function calculateInvoices() {
                 invoice_number = invoice_number.replace(re_invoice_number, '$1');
 
                 var invoice_id = billResult.getValue('custbody_invoice_reference');
-                var invoice_date = billResult.getValue('custbody_invoice_reference_trandate');
+                // var invoice_date = billResult.getValue('custbody_invoice_reference_trandate');
 
                 // Customer name dictionnary
                 var customer_id = billResult.getValue('custbody_invoice_customer');
@@ -110,9 +114,6 @@ function calculateInvoices() {
                 var total_revenue = parseFloat(billResult.getValue('custbody_invoicetotal'));
                 var total_commission = parseFloat(billResult.getValue('amount'));
                 var invoice_type = billResult.getValue('custbody_related_inv_type');
-                if (index < 5) {
-                    nlapiLogExecution('DEBUG', 'invoice_type', invoice_type);
-                }
                 invoice_type = (isNullorEmpty(invoice_type)) ? 'S' : 'P'; // Services : Products
 
                 // For the positive commission, check that the paid amount equals the commission amount.
@@ -121,22 +122,18 @@ function calculateInvoices() {
                 var bill_payment = '';
                 var bill_payment_date = '';
                 var paid_amount_is_total_commission = '';
-                /*
-                if (total_commission > 0) {
-                    var billRecord = nlapiLoadRecord('vendorbill', bill_id);
-                    var lineitems = billRecord.lineitems;
-                    if (!isNullorEmpty(lineitems.links)) {
-                        var lineitems_links_1 = lineitems.links[1];
-                        var paid_amount = lineitems_links_1.total;
-                        bill_payment_id = lineitems_links_1.id;
-                        bill_payment = 'Bill #' + bill_payment_id;
-                        bill_payment_date = lineitems_links_1.trandate;
-                        paid_amount_is_total_commission = (paid_amount == total_commission) ? 'T' : 'F';
-                    } else {
-                        nlapiLogExecution('DEBUG', 'lineitems.expense : ', lineitems.expense);
-                    }
-                }
-                */
+
+                var billRecord = nlapiLoadRecord('vendorbill', bill_id);
+                var invoice_date = billRecord.getFieldValue('custbody_invoice_reference_date');
+                // if (total_commission > 0) {
+                //     if (!isNullorEmpty(billRecord.links)) {
+                //         var links_1 = billRecord.links[1];
+                //         var paid_amount = links_1.total;
+                //         bill_payment_id = links_1.id;
+                //         bill_payment = 'Bill #' + bill_payment_id;
+                //         bill_payment_date = links_1.trandate;
+                //         paid_amount_is_total_commission = (paid_amount == total_commission) ? 'T' : 'F';
+                //     }
 
                 var invoice_status = billResult.getValue('custbody_invoice_status');
                 var is = '';
