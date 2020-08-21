@@ -77,7 +77,10 @@ $(document).ready(function () {
                 title: "Bill Payment Date",
                 type: "date"
             },
-            { title: "Invoice Payment Date" },
+            {
+                title: "Invoice Payment Date",
+                type: "date"
+            },
             { title: "Invoice Status" },
             { title: "paid_amount == total_commission" }
         ],
@@ -251,7 +254,7 @@ function loadDatatable(invoices_rows, bills_id_set, customer_name_dict) {
                 default:
                     break;
             }
-            var invoice_date_paid = invoice_row.idp;
+            var invoice_date_paid = dateNetsuiteToISO(invoice_row.idp);
 
             total_revenue = financial(total_revenue);
             total_commission = financial(total_commission);
@@ -346,7 +349,7 @@ function getCsvName() {
  * @returns {String} The same number, formatted in Australian dollars.
  */
 function financial(x) {
-    if (typeof(x) == 'string') {
+    if (typeof (x) == 'string') {
         x = parseFloat(x);
     }
     if (isNullorEmpty(x)) {
