@@ -1,15 +1,15 @@
 /**
-* Module Description
-* 
-* NSVersion    Date                Author         
-* 1.00         2020-08-18 15:25:00 Raphael
-*
-* Description: Ability for the franchisee to see the details of the commissions they earned for each invoice.
-* 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-08-18 15:25:00
-*
-*/
+ * Module Description
+ * 
+ * NSVersion    Date                Author         
+ * 1.00         2020-08-18 15:25:00 Raphael
+ *
+ * Description: Ability for the franchisee to see the details of the commissions they earned for each invoice.
+ * 
+ * @Last Modified by:   Ankith
+ * @Last Modified time: 2020-08-25 08:21:33
+ *
+ */
 
 var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
@@ -34,9 +34,13 @@ function calculateInvoices() {
     // Script parameters
     var zee_id = ctx.getSetting('SCRIPT', 'custscript_zcid_zee_id');
     var date_from = ctx.getSetting('SCRIPT', 'custscript_zcid_date_from');
-    if (isNullorEmpty(date_from)) { date_from = '' }
+    if (isNullorEmpty(date_from)) {
+        date_from = ''
+    }
     var date_to = ctx.getSetting('SCRIPT', 'custscript_zcid_date_to');
-    if (isNullorEmpty(date_to)) { date_to = '' }
+    if (isNullorEmpty(date_to)) {
+        date_to = ''
+    }
     var type = ctx.getSetting('SCRIPT', 'custscript_zcid_type');
     var paid = ctx.getSetting('SCRIPT', 'custscript_zcid_paid');
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_zcid_main_index'));
@@ -58,7 +62,7 @@ function calculateInvoices() {
     var billResultSet = loadBillSearch(zee_id, date_from, date_to, type, paid);
     var billResultArray = billResultSet.getResults(main_index, main_index + 1000);
 
-    billResultArray.forEach(function (billResult, index) {
+    billResultArray.forEach(function(billResult, index) {
         if (index == 0) {
             nlapiLogExecution('DEBUG', 'JSON.stringify(billResult)', JSON.stringify(billResult));
         }
@@ -125,15 +129,16 @@ function calculateInvoices() {
 
                 var billRecord = nlapiLoadRecord('vendorbill', bill_id);
                 var invoice_date = billRecord.getFieldValue('custbody_invoice_reference_date');
-                // if (total_commission > 0) {
-                //     if (!isNullorEmpty(billRecord.links)) {
-                //         var links_1 = billRecord.links[1];
-                //         var paid_amount = links_1.total;
-                //         bill_payment_id = links_1.id;
-                //         bill_payment = 'Bill #' + bill_payment_id;
-                //         bill_payment_date = links_1.trandate;
-                //         paid_amount_is_total_commission = (paid_amount == total_commission) ? 'T' : 'F';
-                //     }
+
+                if (total_commission > 0) {
+                    if (!isNullorEmpty(billRecord.getLineItemValue('links', 'id', 1))) {
+                        var paid_amount = billRecord.getLineItemValue('links', 'total', 1);
+                        bill_payment_id = billRecord.getLineItemValue('links', 'id', 1);
+                        bill_payment = 'Bill #' + bill_payment_id;
+                        bill_payment_date = billRecord.getLineItemValue('links', 'trandate', 1);
+                        paid_amount_is_total_commission = (paid_amount == total_commission) ? 'T' : 'F';
+                    }
+                }
 
                 var invoice_status = billResult.getValue('custbody_invoice_status');
                 var is = '';
@@ -155,9 +160,8 @@ function calculateInvoices() {
                 // Convert the values to the minimal number of characters
                 total_revenue = financialConcatenated(total_revenue);
                 total_commission = financialConcatenated(total_commission);
-                bill_payment = financialConcatenated(bill_payment);
-                invoices_rows.push({
-                    in: invoice_number,
+                // bill_payment = financialConcatenated(bill_payment);
+                invoices_rows.push({ in: invoice_number,
                     inid: invoice_id,
                     id: invoice_date,
                     ci: customer_id,
