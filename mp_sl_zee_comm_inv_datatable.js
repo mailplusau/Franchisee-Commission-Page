@@ -46,6 +46,28 @@ function showInvoicesList(request, response) {
 
         var zeeRecord = nlapiLoadRecord('partner', zee_id);
         var zee_name = zeeRecord.getFieldValue('companyname');
+        timestamp = Date.now().toString();
+        nlapiLogExecution('DEBUG', 'timestamp', timestamp);
+        var ss_params = {
+            custscript_zcid_zee_id: zee_id,
+            custscript_zcid_date_from: date_from,
+            custscript_zcid_date_to: date_to,
+            custscript_zcid_type: type,
+            custscript_zcid_paid: paid,
+            custscript_zcid_main_index: 0,
+            custscript_zcid_timestamp: timestamp,
+            custscript_zcid_invoices_rows: JSON.stringify([]),
+            custscript_zcid_customer_name_dict: JSON.stringify({}),
+            custscript_zcid_bills_id_set: JSON.stringify([])
+
+        };
+        nlapiLogExecution('DEBUG', 'ss_params', JSON.stringify(ss_params));
+        // This scheduled script will load the informations linked to the invoices used to calculate the commissions and revenues
+        // earned by the Franchisee `zee_id` during the period between `date_from` and `date_to`.
+        // A timestamp is added to make sure we will get the results from a unique record, as 
+        // a query with the same parameters might display different results if it is called later on.
+        var status = nlapiScheduleScript('customscript_ss_zee_comm_inv_datatable', 'customdeploy_ss_zee_comm_inv_datatable', ss_params);
+        nlapiLogExecution('DEBUG', 'Scheduled script scheduled', status);
 
         var paid_title = '';
         switch (paid) {
@@ -99,6 +121,7 @@ function showInvoicesList(request, response) {
 
         inlineHtml += dateFilterSection();
         inlineHtml += dataTablePreview();
+        inlineHtml += loadingSection();
 
         form.addField('preview_table', 'inlinehtml', '').setLayoutType('outsidebelow', 'startrow').setLayoutType('midrow').setDefaultValue(inlineHtml);
         form.addField('custpage_zee_id', 'text', 'Franchisee ID').setDisplayType('hidden').setDefaultValue(zee_id.toString());
@@ -107,6 +130,7 @@ function showInvoicesList(request, response) {
         form.addField('custpage_date_to', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(date_to);
         form.addField('custpage_type', 'text', 'Type').setDisplayType('hidden').setDefaultValue(type);
         form.addField('custpage_paid', 'text', 'Paid').setDisplayType('hidden').setDefaultValue(paid);
+        form.addField('custpage_timestamp', 'text', 'Timestamp').setDisplayType('hidden').setDefaultValue(timestamp);
         form.addField('custpage_table_csv', 'text', 'Table CSV').setDisplayType('hidden');
         form.addButton('custpage_back', 'Back', 'onBack()');
         form.addButton('download_csv', 'Export as CSV', 'downloadCsv()');
@@ -115,6 +139,21 @@ function showInvoicesList(request, response) {
     } else {
         nlapiSetRedirectURL('SUITELET', 'customscript_sl_zee_comm_inv_datatable', 'customdeploy_sl_zee_comm_inv_datatable', null, null);
     }
+}
+
+
+/**
+ * The header showing that the results are loading.
+ * @returns {String} `inlineQty`
+ */
+function loadingSection() {
+    var inlineQty = '<div class="form-group container loading_section" style="text-align:center">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 loading_div">';
+    inlineQty += '<h1>Loading...</h1>';
+    inlineQty += '</div></div></div>';
+
+    return inlineQty;
 }
 
 /**
