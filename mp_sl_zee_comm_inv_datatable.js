@@ -1,15 +1,15 @@
 /**
-* Module Description
-* 
-* NSVersion    Date                Author         
-* 1.00         2020-07-20 09:39:00 Raphael
-*
-* Description: Ability for the franchisee to see the commission the details of the commissions they earned for each invoice.
-* 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-21 11:17:00
-*
-*/
+ * Module Description
+ * 
+ * NSVersion    Date                Author         
+ * 1.00         2020-07-20 09:39:00 Raphael
+ *
+ * Description: Ability for the franchisee to see the commission the details of the commissions they earned for each invoice.
+ * 
+ * @Last Modified by:   Anesu
+ * @Last Modified time: 2020-07-21 14:11:33
+ *
+ */
 
 var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
@@ -59,7 +59,6 @@ function showInvoicesList(request, response) {
             custscript_zcid_invoices_rows: JSON.stringify([]),
             custscript_zcid_customer_name_dict: JSON.stringify({}),
             custscript_zcid_bills_id_set: JSON.stringify([])
-
         };
         nlapiLogExecution('DEBUG', 'ss_params', JSON.stringify(ss_params));
         // This scheduled script will load the informations linked to the invoices used to calculate the commissions and revenues
@@ -81,6 +80,10 @@ function showInvoicesList(request, response) {
 
             case 'unpaid':
                 paid_title = 'Unpaid';
+                break;
+
+            case 'credit_memo':
+                paid_title = 'Credit Memo';
                 break;
         }
 
@@ -120,6 +123,7 @@ function showInvoicesList(request, response) {
         inlineHtml += '<style>.mandatory{color:red;}</style>';
 
         inlineHtml += dateFilterSection();
+        inlineHtml += totalAmountSection();
         inlineHtml += dataTablePreview();
         inlineHtml += loadingSection();
 
@@ -132,6 +136,13 @@ function showInvoicesList(request, response) {
         form.addField('custpage_paid', 'text', 'Paid').setDisplayType('hidden').setDefaultValue(paid);
         form.addField('custpage_timestamp', 'text', 'Timestamp').setDisplayType('hidden').setDefaultValue(timestamp);
         form.addField('custpage_table_csv', 'text', 'Table CSV').setDisplayType('hidden');
+        /**
+         *  Adding Credit Memo Params if needed.
+         * May not need it as there aren't any params yet.
+         */
+        // var credit_memo = '';
+        // form.addField('custpage_credit_memo', 'text', 'Credit Memo').setDisplayType('hidden').setDefaultValue(credit_memo);  
+
         form.addButton('custpage_back', 'Back', 'onBack()');
         form.addButton('download_csv', 'Export as CSV', 'downloadCsv()');
         form.setScript('customscript_cl_zee_comm_inv_datatable');
@@ -161,8 +172,13 @@ function loadingSection() {
  * @return  {String}    inlineQty
  */
 function dateFilterSection() {
+    var inlineQty = '<div class="form-group container total_amount_section">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 heading1"><h4><span class="label label-default col-xs-12">Date Filter</span></h4></div>';
+    inlineQty += '</div>';
+    inlineQty += '</div>';
 
-    var inlineQty = '<div class="form-group container date_filter_section">';
+    inlineQty += '<div class="form-group container date_filter_section">';
     inlineQty += '<div class="row">';
     // Date from field
     inlineQty += '<div class="col-xs-6 date_from">';
@@ -185,7 +201,7 @@ function dateFilterSection() {
  * @return  {String}    inlineQty
  */
 function dataTablePreview() {
-    var inlineQty = '<style>table#bills-preview {font-size: 12px;text-align: center;border: none;}.dataTables_wrapper {font-size: 14px;}table#bills-preview th{text-align: center;}</style>';
+    var inlineQty = '<style>table#bills-preview {font-size: 12px;text-align: center;border: none;}.dataTables_wrapper {font-size: 14px;}table#bills-preview th{text-align: center;} .bolded{font-weight: bold;}</style>';
     inlineQty += '<table cellpadding="15" id="bills-preview" class="table table-responsive table-striped customer tablesorter" cellspacing="0" style="width: 100%;">';
     inlineQty += '<thead style="color: white;background-color: #607799;">';
     inlineQty += '<tr class="text-center">';
@@ -195,5 +211,42 @@ function dataTablePreview() {
     inlineQty += '<tbody id="result_bills"></tbody>';
 
     inlineQty += '</table>';
+    return inlineQty;
+}
+
+function totalAmountSection() {
+    var inlineQty = '<div class="form-group container total_amount_section">';
+    inlineQty += '<div class="row">';
+    inlineQty += '<div class="col-xs-12 heading1"><h4><span class="label label-default col-xs-12">Total Amount in Table</span></h4></div>';
+    inlineQty += '</div>';
+    inlineQty += '</div>';
+
+    inlineQty += '<div class="form-group container total_amount_section">';
+    inlineQty += '<div class="row">';
+    // Total Revenue (Excl. Credit Memo)
+    inlineQty += '<div class="col-xs-6 total_rev">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="total_rev_text">Total Revenue (Excl. Credit Memo)</span>';
+    inlineQty += '<input id="total_rev" class="form-control total_rev" type="text" disabled/>';
+    inlineQty += '</div></div>';
+    // Total Commission (Excl. Bill Credit)
+    inlineQty += '<div class="col-xs-6 total_comm">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="total_comm_text">Total Commission (Excl. Bill Credit)</span>';
+    inlineQty += '<input id="total_comm" class="form-control total_comm" type="text" disabled>';
+    inlineQty += '</div></div>';
+    // Total Revenue (Incl. Credit Memo)
+    inlineQty += '<div class="col-xs-6 total_cred">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="total_cred_text">Total Revenue (Incl. Credit Memo)</span>';
+    inlineQty += '<input id="total_cred" class="form-control total_cred" type="text" disabled/>';
+    inlineQty += '</div></div>';
+    // Total Commission (Incl. Bill Credit)
+    inlineQty += '<div class="col-xs-6 total_bill">';
+    inlineQty += '<div class="input-group">';
+    inlineQty += '<span class="input-group-addon" id="total_bill_text">Total Commission (Incl. Bill Credit)</span>';
+    inlineQty += '<input id="total_bill" class="form-control total_bill" type="text" disabled>';
+    inlineQty += '</div></div></div></div>';
+
     return inlineQty;
 }

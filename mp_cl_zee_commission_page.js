@@ -1,17 +1,17 @@
 /**
-* Module Description
-* 
-* NSVersion    Date                Author         
-* 2.00         2020-07-23 15:07:00 Raphael
-*
-* Description: Ability for the franchisee to see the commission they earned for both product as well as services.
-*              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
-*              No. of customers as well as the distribution date of the commission.
-* 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-08-12 12:47:00
-*
-*/
+ * Module Description
+ * 
+ * NSVersion    Date                Author         
+ * 2.00         2020-07-23 15:07:00 Raphael
+ *
+ * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
+ *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
+ *              No. of customers as well as the distribution date of the commission.
+ * 
+ * @Last Modified by:   Anesu Chakaingesu
+ * @Last Modified time: 2020-09-17 17:05:00
+ *
+ */
 
 var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
@@ -67,13 +67,13 @@ function pageInit() {
         selectDate();
     }
 
-    $('#zee_dropdown').change(function () {
+    $('#zee_dropdown').change(function() {
         reloadPageWithParams();
     });
-    $('#period_dropdown').change(function () {
+    $('#period_dropdown').change(function() {
         selectDate();
     });
-    $('#date_from, #date_to').change(function () {
+    $('#date_from, #date_to').change(function() {
         reloadPageWithParams();
         $('#period_dropdown option:selected').attr('selected', false);
     });
@@ -162,10 +162,11 @@ function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
     zcpFilterExpression[2] = new nlobjSearchFilter('custrecord_zee_id', null, 'is', zee_id);
     zcpFilterExpression[3] = new nlobjSearchFilter('custrecord_timestamp', null, 'is', timestamp);
 
-    var zcpSearch = nlapiLoadSearch('customrecord_zee_commission_page', 'customsearch_zee_commission_page_3');
+    var zcpSearch = nlapiLoadSearch('customrecord_zee_commission_page', 'customsearch_zee_commission_page_3_2');
     zcpSearch.setFilters(zcpFilterExpression);
     var zcpSearchResults = zcpSearch.runSearch();
     var zcpSearchResult = zcpSearchResults.getResults(0, 1);
+
     if (!isNullorEmpty(zcpSearchResult)) {
         var zcpRecord = zcpSearchResult[0];
         var nb_invoices_array = JSON.parse(zcpRecord.getValue('custrecord_nb_invoices_array'));
@@ -175,7 +176,11 @@ function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
         var commissions_total_array = JSON.parse(zcpRecord.getValue('custrecord_commissions_total_array'));
         var operator_dict = JSON.parse(zcpRecord.getValue('custrecord_operator_dict'));
 
-        displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict);
+        var credit_memo_services_row = JSON.parse(zcpRecord.getValue('custrecord_services_array'));
+        var credit_memo_products_row = JSON.parse(zcpRecord.getValue('custrecord_products_array'));
+        var nb_credit_memo_array = JSON.parse(zcpRecord.getValue('custrecord_nb_credit_memo_array'));
+
+        displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict, credit_memo_services_row, credit_memo_products_row, nb_credit_memo_array); //
     }
 }
 
@@ -188,14 +193,24 @@ function loadZCPRecord(zee_id, date_from, date_to, timestamp) {
  * @param {Array}   commissions_total_array 
  * @param {Object}  operator_dict 
  */
-function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict) {
+function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total_array, commissions_tax_array, commissions_total_array, operator_dict, credit_memo_services_row, credit_memo_products_row, nb_credit_memo_array) { // 
     console.log('load_record_interval in displayZCPResults', load_record_interval);
     // Define vars
-    var nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products;
-    var paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax;
-    var paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total;
-    var paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax;
-    var paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total;
+    var nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products; // nb_invoices_array
+    var paid_services_revenues_tax, unpaid_services_revenues_tax, paid_products_revenues_tax, unpaid_products_revenues_tax; // revenues_tax_array
+    var paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total; // revenues_total_array
+    var paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax; // commissions_tax_array
+    var paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total; //commissions_total_array
+
+    var credit_memo_services_revenues, credit_memo_services_revenues_tax, credit_memo_services_revenues_total, credit_memo_services_commissions, credit_memo_services_commissions_tax, credit_memo_services_commissions_total; // credit_memo_services_row
+    var credit_memo_products_revenues, credit_memo_products_revenues_tax, credit_memo_products_revenues_total, credit_memo_products_commissions, credit_memo_products_commissions_tax, credit_memo_products_commissions_total; // credit_memo_products_row
+    var nb_credit_memo_services, nb_credit_memo_products; // Number of Credit Memos
+    /** 
+     * Update: Define Credit Memo Array
+     */
+    [credit_memo_services_revenues, credit_memo_services_revenues_tax, credit_memo_services_revenues_total, credit_memo_services_commissions, credit_memo_services_commissions_tax, credit_memo_services_commissions_total] = credit_memo_services_row;
+    [credit_memo_products_revenues, credit_memo_products_revenues_tax, credit_memo_products_revenues_total, credit_memo_products_commissions, credit_memo_products_commissions_tax, credit_memo_products_commissions_total] = credit_memo_products_row;
+    [nb_credit_memo_services, nb_credit_memo_products] = nb_credit_memo_array;
 
     // Set values
     [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = nb_invoices_array;
@@ -217,19 +232,33 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
     unpaid_products_row = [unpaid_products_revenues, unpaid_products_revenues_tax, unpaid_products_revenues_total, unpaid_products_commissions, unpaid_products_commissions_tax, unpaid_products_commissions_total] = calculateWithoutTax(unpaid_products_row);
 
     // Calculate Sum rows (Services, Products, Paid, Unpaid and Total)
-    var services_row = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = sum2arrays(paid_services_row, unpaid_services_row);
-    var products_row = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = sum2arrays(paid_products_row, unpaid_products_row);
+    var services_row_sum = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = sum2arrays(paid_services_row, unpaid_services_row);
+    console.log(credit_memo_services_row);
+    var services_row = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = subtract2arrays(services_row_sum, credit_memo_services_row);
+    var products_row_sum = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = sum2arrays(paid_products_row, unpaid_products_row);
+    console.log(credit_memo_products_row);
+    var products_row = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = subtract2arrays(products_row_sum, credit_memo_products_row);
     var paid_row = [paid_revenues, paid_revenues_tax, paid_revenues_total, paid_commissions, paid_commissions_tax, paid_commissions_total] = sum2arrays(paid_services_row, paid_products_row);
     var unpaid_row = [unpaid_revenues, unpaid_revenues_tax, unpaid_revenues_total, unpaid_commissions, unpaid_commissions_tax, unpaid_commissions_total] = sum2arrays(unpaid_services_row, unpaid_products_row);
-    var total_row = [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = sum2arrays(unpaid_row, paid_row);
+    var sum_unpaid_row_paid_row = [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = sum2arrays(unpaid_row, paid_row);
+    // var total_row = [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = sum2arrays(unpaid_row, paid_row);
+    /** Update: Credit Memo Sum Rows */
+    var credit_memo_row = [credit_revenues, credit_revenues_tax, credit_revenues_total, credit_commissions, credit_commissions_tax, credit_commissions_total] = sum2arrays(credit_memo_services_row, credit_memo_products_row);
+    var total_row = [revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = subtract2arrays(sum_unpaid_row_paid_row, credit_memo_row);
 
     // Convert Numbers to formatted currency strings.
     paid_services_row = paid_services_row.map(financial);
     unpaid_services_row = unpaid_services_row.map(financial);
+    credit_memo_services_row = credit_memo_services_row.map(financialNegative); // Credit Memo Services
+
     paid_products_row = paid_products_row.map(financial);
     unpaid_products_row = unpaid_products_row.map(financial);
+    credit_memo_products_row = credit_memo_products_row.map(financialNegative); // Credit Memo Products
+
     services_row = services_row.map(financial);
     products_row = products_row.map(financial);
+
+    credit_memo_row = credit_memo_row.map(financialNegative); //Credit Memo row
     paid_row = paid_row.map(financial);
     unpaid_row = unpaid_row.map(financial);
     total_row = total_row.map(financial);
@@ -244,6 +273,10 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
     paid_row = [nb_paid_services + nb_paid_products].concat(paid_row);
     unpaid_row = [nb_unpaid_services + nb_unpaid_products].concat(unpaid_row);
     total_row = [nb_paid_services + nb_paid_products + nb_unpaid_services + nb_unpaid_products].concat(total_row);
+    /** Update: Credit Memo Row */
+    credit_memo_products_row = [nb_credit_memo_products].concat(credit_memo_products_row); // Products Credit Memo
+    credit_memo_services_row = [nb_credit_memo_services].concat(credit_memo_services_row); // Services Credit Memo 
+    credit_memo_row = [nb_credit_memo_services + nb_credit_memo_products].concat(credit_memo_row); // Total Credit Memo
 
     // Total
     var total_selector = '#commission_table tbody tr.total_row.sum_row';
@@ -254,6 +287,9 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
     // Total (unpaid)
     var unpaid_total_selector = '#commission_table tbody tr.total_row.unpaid_row';
     setRow(unpaid_total_selector, unpaid_row);
+    /** Update: Credit Memo Info */
+    var credit_memo_total_selector = '#commission_table tbody tr.total_row.credit_memo_row';
+    setRow(credit_memo_total_selector, credit_memo_row);
 
     // Services
     var services_selector = '#commission_table tbody tr.services_row.sum_row';
@@ -264,6 +300,9 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
     // Services (unpaid)
     var unpaid_services_selector = '#commission_table tbody tr.services_row.unpaid_row';
     setRow(unpaid_services_selector, unpaid_services_row);
+    /** Update: Credit Memo Info */
+    var credit_memo_total_selector = '#commission_table tbody tr.services_row.credit_memo_row';
+    setRow(credit_memo_total_selector, credit_memo_services_row);
 
     // Products
     var products_selector = '#commission_table tbody tr.products_row.sum_row';
@@ -274,6 +313,9 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
     // Products (unpaid)
     var unpaid_products_selector = '#commission_table tbody tr.products_row.unpaid_row';
     setRow(unpaid_products_selector, unpaid_products_row);
+    /** Update: Credit Memo Info */
+    var credit_memo_products_selector = '#commission_table tbody tr.products_row.credit_memo_row';
+    setRow(credit_memo_products_selector, credit_memo_products_row);
 
     if (Object.keys(operator_dict).length > 0 && isNullorEmpty(operator_dict["null"])) {
         inlineHtmlOperatorTable = operatorTable(operator_dict);
@@ -325,6 +367,11 @@ function setRow(row_selector, amounts_array) {
         case 'unpaid_row':
             paid = 'unpaid';
             break;
+
+            // Update: Credit Memo Info
+        case 'credit_memo_row':
+            paid = 'credit_memo';
+            break;
     }
 
     var params = {
@@ -337,6 +384,9 @@ function setRow(row_selector, amounts_array) {
     params = JSON.stringify(params);
     var upload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_zee_comm_inv_datatable', 'customdeploy_sl_zee_comm_inv_datatable') + '&custparam_params=' + encodeURIComponent(params);
     var inline_link = '<a href="' + upload_url + '">' + nb_invoices + '</a>';
+
+    // var upload_url_credit_memo = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_zee_comm_credit_memo', 'customdeploy_sl_zee_comm_credit_memo')
+    // var credit_memo_link = '<a href="' + upload_url_credit_memo + '">' + nb_credit_memo + '</a>';
 
     $(row_selector + ' td[headers="table_nb_invoices"]').html(inline_link);
     $(row_selector + ' td[headers="table_revenue"]').text(revenues);
@@ -383,6 +433,20 @@ function sum2arrays(array1, array2) {
             sum_array[i] = array1[i] + array2[i];
         }
         return sum_array;
+    }
+}
+
+function subtract2arrays(array2, array1) {
+    var length_1 = array1.length;
+    var length_2 = array2.length;
+    if (length_1 != length_2) {
+        return false;
+    } else {
+        var sub_array = new Array(length_2);
+        for (var i = 0; i < length_1; i++) {
+            sub_array[i] = array2[i] - array1[i];
+        }
+        return sub_array;
     }
 }
 
@@ -486,6 +550,7 @@ function tableRowCells() {
     return inlineQty;
 }
 
+
 /**
  * The inline html code for the commission table.
  * Inserted at the beginning of the pageInit function.
@@ -508,6 +573,11 @@ function commissionTable() {
     inlineQty += '.products_row.sum_row {background-color: rgba(163, 218, 80, 1);}';
     inlineQty += '.products_row.paid_row {background-color: rgba(163, 218, 80, 0.5);}';
     inlineQty += '.products_row.unpaid_row {background-color: rgba(163, 218, 80, 0.2);}';
+
+    //Credit Memo Rows
+    inlineQty += '.products_row.credit_memo_row {color: red; background-color: rgba(163, 218, 80, 0.1);}';
+    inlineQty += '.services_row.credit_memo_row {color: red; background-color: rgba(245, 180, 112, 0.1);}';
+    inlineQty += '.total_row.credit_memo_row {color: red; background-colour: rgba(93, 164, 224, 0.1);}';
 
     // Inclusive and Exclusive of GST headers
     inlineQty += '.incl_excl_gst {font-size: x-small;}';
@@ -533,7 +603,7 @@ function commissionTable() {
     inlineQty += '<thead>';
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
-    inlineQty += '<th scope="col" id="table_nb_invoices">Number of invoices</th>';
+    inlineQty += '<th scope="col" id="table_nb_invoices">Number of Invoices/Credit Memos</th>';
     inlineQty += '<th scope="col" id="table_revenue" class="price_header">Revenue<br><span class="incl_excl_gst">[excl. GST]</span></th>';
     inlineQty += '<th scope="col" id="table_revenue_tax" class="price_header">Tax</th>';
     inlineQty += '<th scope="col" id="table_revenue_total" class="price_header">Revenue<br><span class="incl_excl_gst">[incl. GST]</span></th>';
@@ -554,6 +624,9 @@ function commissionTable() {
     inlineQty += '<tr class="total_row unpaid_row">';
     inlineQty += '<th scope="row" headers="table_title">Unpaid</th>';
     inlineQty += tableRowCells();
+    inlineQty += '<tr class="total_row credit_memo_row">';
+    inlineQty += '<th scope="row" headers="table_title">Credit Memo</th>';
+    inlineQty += tableRowCells();
     inlineQty += '</tr>';
     inlineQty += '<tr class="services_row sum_row">';
     inlineQty += '<th scope="row" headers="table_title">Services</th>';
@@ -566,6 +639,9 @@ function commissionTable() {
     inlineQty += '<tr class="services_row unpaid_row">';
     inlineQty += '<th scope="row" headers="table_title">Unpaid</th>';
     inlineQty += tableRowCells();
+    inlineQty += '<tr class="services_row credit_memo_row">';
+    inlineQty += '<th scope="row" headers="table_title">Credit Memo</th>';
+    inlineQty += tableRowCells();
     inlineQty += '</tr>';
     inlineQty += '<tr class="products_row sum_row">';
     inlineQty += '<th scope="row" headers="table_title">Products</th>';
@@ -577,6 +653,9 @@ function commissionTable() {
     inlineQty += '</tr>';
     inlineQty += '<tr class="products_row unpaid_row">';
     inlineQty += '<th scope="row" headers="table_title">Unpaid</th>';
+    inlineQty += tableRowCells();
+    inlineQty += '<tr class="products_row credit_memo_row">';
+    inlineQty += '<th scope="row" headers="table_title">Credit Memo</th>';
     inlineQty += tableRowCells();
     inlineQty += '</tr>';
     inlineQty += '</tbody>';
@@ -618,7 +697,7 @@ function operatorTable(operator_dict) {
     inlineQty += '</thead>'
     inlineQty += '<tbody id="operator_results">'
 
-    operator_id_array.forEach(function (operator_id) {
+    operator_id_array.forEach(function(operator_id) {
         var operator_object = operator_dict[operator_id];
         var operator_name = operator_object.name;
         var paid_row = [operator_object.tax_paid_amount, operator_object.total_paid_amount];
@@ -657,6 +736,12 @@ function operatorTable(operator_dict) {
 
     return inlineQty;
 }
+
+// function creditMemos(){
+//     var inlineQty = '<style>';
+
+//     return inlineQty;
+// }
 
 /**
  * Used to set the value of the date input fields.
@@ -699,5 +784,23 @@ function financial(x) {
         return "$0.00";
     } else {
         return x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
+    }
+}
+
+/**
+ * @param   {Number} x
+ * @returns {String} The same number, but converted to a negative value & formatted in Australian dollars.
+ */
+function financialNegative(x) {
+    // var re = /\-/g;
+    // if (x.contains('-')){
+    //     x = x.replace(re, '');
+    // }
+
+    if (isNullorEmpty(x) || isNaN(x)) {
+        return "$0.00";
+    } else {
+        // Matches the minus symbol and replaces with blank string.
+        return '-' + x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
     }
 }

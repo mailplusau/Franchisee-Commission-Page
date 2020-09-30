@@ -6,8 +6,8 @@
  *
  * Description: Ability for the franchisee to see the details of the commissions they earned for each invoice.
  * 
- * @Last Modified by:   Ankith
- * @Last Modified time: 2020-08-25 08:21:33
+ * @Last Modified by:   Anesu
+ * @Last Modified time: 2020-09-03 14:11:33
  *
  */
 
@@ -54,13 +54,19 @@ function calculateInvoices() {
     nlapiLogExecution('DEBUG', 'Param main_index', main_index);
     nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
+
     // Values to be calculated
     var invoices_rows = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_zcid_invoices_rows'));
     var customer_name_dict = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_zcid_customer_name_dict'));
     var bills_id_set = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_zcid_bills_id_set'));
 
+    // Bill Search
     var billResultSet = loadBillSearch(zee_id, date_from, date_to, type, paid);
     var billResultArray = billResultSet.getResults(main_index, main_index + 1000);
+
+    // Credit Memo Search
+    // var creditResultSet = loadCreditMemo(zee_id, date_from, date_to, type, paid);
+    // var creditResultArray = creditResultSet.getResults(main_index, main_index + 1000);
 
     billResultArray.forEach(function(billResult, index) {
         if (index == 0) {
@@ -87,7 +93,8 @@ function calculateInvoices() {
                 custscript_zcid_timestamp: timestamp,
                 custscript_zcid_invoices_rows: JSON.stringify(invoices_rows),
                 custscript_zcid_customer_name_dict: JSON.stringify(customer_name_dict),
-                custscript_zcid_bills_id_set: JSON.stringify(bills_id_set),
+                custscript_zcid_bills_id_set: JSON.stringify(bills_id_set)
+                    // custscript_zcid_credit_rows: JSON.stringify(credit_rows)
             };
 
             reschedule = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params)
@@ -161,6 +168,67 @@ function calculateInvoices() {
                 total_revenue = financialConcatenated(total_revenue);
                 total_commission = financialConcatenated(total_commission);
                 // bill_payment = financialConcatenated(bill_payment);
+
+                /**
+                 *  Update: Add Additional Information for Credit Memo Row
+                 */
+                var credit_memo_name = '',
+                    credit_memo_id = '',
+                    credit_memo_amount = '',
+                    credit_memo_date = '',
+                    credit_memo_customer_name = '',
+                    credit_memo_type = '',
+                    credit_memo_payment_date = '',
+                    credit_memo_status = '',
+                    bill_credit_amount = '',
+                    bill_credit_id = '',
+                    bill_credit_payment_id = '',
+                    bill_credit_payment_date = '',
+                    total_bill = '',
+                    total_rev = '',
+                    total_comm = '',
+                    total_cred = '';
+
+                var resultCreditMemo = loadCreditMemo(invoice_id);
+                resultCreditMemo.forEach(function(resultSearchCreditMemo) {;
+                    // Using the specific Credit Memo that we have found, Get result total
+                    credit_memo_name = resultSearchCreditMemo.getValue('tranid'); // Displays name
+                    credit_memo_id = resultSearchCreditMemo.getId();
+                    credit_memo_amount = resultSearchCreditMemo.getValue('amount'); // Get Credit amount 
+                    credit_memo_date = resultSearchCreditMemo.getValue('trandate');
+                    credit_memo_customer_name = resultSearchCreditMemo.getText('entity');
+                    credit_memo_type = resultSearchCreditMemo.getValue('custbody_inv_type'); // Invoice Type
+                    if (credit_memo_type == '8') {
+                        credit_memo_type = 'P';
+                    } else if (credit_memo_type == '') {
+                        credit_memo_type = 'S';
+                    }
+                    nlapiLogExecution('AUDIT', 'credit_memo_type', credit_memo_type);
+                    credit_memo_payment_date = resultSearchCreditMemo.getValue('custbody_invoice_emailed_date');
+                    credit_memo_status = resultSearchCreditMemo.getValue('custbody_invoice_status');
+                    if (credit_memo_status == 'Paid In Full') {
+                        credit_memo_status = 'F';
+                    } else if (credit_memo_status == 'Open') {
+                        credit_memo_status = 'O';
+                    } else if (credit_memo_status == '') {
+                        credit_memo_status = 'V';
+                    }
+                    // nlapiLogExecution('AUDIT', 'credit_memo_name', credit_memo_name);
+                    // nlapiLogExecution('AUDIT', 'credit_memo_amount', credit_memo_amount);
+                    // nlapiLogExecution('AUDIT', 'credit_memo_id', credit_memo_id);
+                });
+
+                var resultBillCredit = loadBillCredit(invoice_id);
+                resultBillCredit.forEach(function(billCreditSet) {
+                    bill_credit_amount = billCreditSet.getValue('amount');
+                    bill_credit_id = billCreditSet.getId();
+                    bill_credit_payment_id = billCreditSet.getId();
+                    bill_credit_payment_date = billCreditSet.getValue('trandate');
+                    // nlapiLogExecution('AUDIT', 'bill_credit_amount', bill_credit_amount);
+                    // nlapiLogExecution('AUDIT', 'bill_credit_id', bill_credit_id);
+                    // nlapiLogExecution('AUDIT', 'bill_credit_payment_date', bill_credit_payment_date);
+                });
+
                 invoices_rows.push({ in: invoice_number,
                     inid: invoice_id,
                     id: invoice_date,
@@ -173,9 +241,20 @@ function calculateInvoices() {
                     bpd: bill_payment_date,
                     idp: invoice_date_paid,
                     is: is,
-                    paitc: paid_amount_is_total_commission
+                    paitc: paid_amount_is_total_commission,
+                    cmn: credit_memo_name, // Credit Memo Name
+                    cmid: credit_memo_id, // Credit Memo ID
+                    cmd: credit_memo_date,
+                    cmcm: credit_memo_customer_name,
+                    cma: credit_memo_amount, // Credit Memo Amount
+                    bca: bill_credit_amount,
+                    cmt: credit_memo_type,
+                    bcid: bill_credit_id,
+                    bcpid: bill_credit_payment_id,
+                    bcpd: bill_credit_payment_date,
+                    cmpd: credit_memo_payment_date,
+                    cms: credit_memo_status,
                 });
-
                 return true;
             }
         }
@@ -185,12 +264,15 @@ function calculateInvoices() {
     if (will_reschedule) {
         // If the script will be rescheduled, we look for the element 999 of the loop to see if it is empty or not.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
+        // var creditNextArray = creditResultSet.getResults(main_index + index_in_callback, main_index + index_in_callback + 1);
     } else {
         // If the script will not be rescheduled, we make sure we didn't miss any results in the search.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback + 1, main_index + index_in_callback + 2);
+        // var creditNextArray = creditResultSet.getResults(main_index + index_in_callback + 1, main_index + index_in_callback + 2);
     }
 
-    nlapiLogExecution('DEBUG', '(billNextResultArray.length == 0)', (billNextResultArray.length == 0));
+    // nlapiLogExecution('DEBUG', '(billNextResultArray.length == 0)', (billNextResultArray.length == 0));
+    // nlapiLogExecution('DEBUG', 'billNextResultArray', billNextResultArray);
     if (billNextResultArray.length == 0) {
         var zeeCommissionInvDatatableRecord = nlapiCreateRecord('customrecord_zee_comm_inv_datatable');
         // zeeCommissionInvDatatableRecord.setFieldValue('altname', zcp_record_name);
@@ -206,6 +288,8 @@ function calculateInvoices() {
         zeeCommissionInvDatatableRecord.setFieldValue('custrecord_zcid_invoices_rows', JSON.stringify(invoices_rows));
         zeeCommissionInvDatatableRecord.setFieldValue('custrecord_zcid_bills_id_set', JSON.stringify(bills_id_set));
         zeeCommissionInvDatatableRecord.setFieldValue('custrecord_zcid_customer_name_dict', JSON.stringify(customer_name_dict));
+        // zeeCommissionInvDatatableRecord.setFieldValue('custrecord_zcid_credit_rows', JSON.stringify(credit_rows));
+
         nlapiSubmitRecord(zeeCommissionInvDatatableRecord);
     }
 }
@@ -222,6 +306,13 @@ function calculateInvoices() {
 function loadBillSearch(zee_id, date_from, date_to, type, paid) {
     var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
     billSearch.addFilter(new nlobjSearchFilter('custbody_related_franchisee', null, 'is', zee_id));
+    billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
+
+    // if (paid == 'credit_memo') {
+    //     billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'CustCred'));
+    // } else {
+    //     billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
+    // }
 
     if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
         billSearch.addFilter(new nlobjSearchFilter('trandate', null, 'within', date_from, date_to));
@@ -247,6 +338,44 @@ function loadBillSearch(zee_id, date_from, date_to, type, paid) {
     var billResultSet = billSearch.runSearch();
 
     return billResultSet;
+}
+
+/**
+ * Update: Credit Memo Search Function
+ * @param {Integer} zee_id 
+ * @param {String} date_from 
+ * @param {String} date_to 
+ */
+function loadCreditMemo(invoice_id) {
+    var searchCreditMemo = nlapiLoadSearch('creditmemo', 'customsearch_credit_memo');
+    // var creditMemoFilter = [['type', 'anyOf', 'CustCred'], 'AND', ['partner', 'anyof', zee_id], 'AND', ["trandate", "within", date_from, date_to], 'AND', ['mainline', 'is', 'T']];
+    var creditMemoFilter = [
+        ['type', 'anyOf', 'CustCred'], 'AND', ['custbody_invoice_reference', 'is', invoice_id], 'AND', ['mainline', 'is', 'T']
+    ];
+    searchCreditMemo.setFilterExpression(creditMemoFilter);
+    var resultCreditMemo = searchCreditMemo.runSearch();
+    var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
+
+    return resultsCreditMemo;
+}
+
+/**
+ * Update: Bill Credit Search Function
+ * Search Via Invoice Number
+ * @param {String} zee_id 
+ * @param {*} date_from 
+ * @param {*} date_to 
+ */
+function loadBillCredit(invoice_id, date_from, date_to) {
+    var searchCreditMemo = nlapiLoadSearch('vendorcredit', 'customsearch_bill_credit');
+    var creditMemoFilter = [
+        ['type', 'anyOf', 'VendCred'], 'AND', ['custbody_invoice_reference', 'is', invoice_id], 'AND', ['mainline', 'is', 'T']
+    ]; // 3169057
+    searchCreditMemo.setFilterExpression(creditMemoFilter);
+    var resultCreditMemo = searchCreditMemo.runSearch();
+    var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
+
+    return resultsCreditMemo;
 }
 
 /**

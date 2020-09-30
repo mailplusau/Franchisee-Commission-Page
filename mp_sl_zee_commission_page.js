@@ -8,8 +8,8 @@
 *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
 *              No. of customers as well as the distribution date of the commission.
 * 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-08-12 12:47:00
+* @Last Modified by:   Anesu Chakaingesu
+* @Last Modified time: 2020-09-21 17:04:20
 *
 */
 
@@ -72,7 +72,10 @@ function showCommissions(request, response) {
                 custscript_commissions_tax_array: JSON.stringify([0, 0, 0, 0]),
                 custscript_commissions_total_array: JSON.stringify([0, 0, 0, 0]),
                 custscript_bills_id_set: JSON.stringify([]),
-                custscript_operator_dict: JSON.stringify({})
+                custscript_operator_dict: JSON.stringify({}),
+                custscript_credit_memo_services_array: JSON.stringify([0, 0, 0, 0, 0, 0]),
+                custscript_credit_memo_products_array: JSON.stringify([0, 0, 0, 0, 0, 0]),
+                custscript_nb_credit_memo_array: JSON.stringify([0, 0])
             };
             nlapiLogExecution('DEBUG', 'ss_params', JSON.stringify(ss_params));
             // This scheduled script will calculate the commissions and revenues earned by the Franchisee `zee_id` during the period
@@ -80,6 +83,8 @@ function showCommissions(request, response) {
             // a query with the same parameters might display different results if it is called later on.
             var status = nlapiScheduleScript('customscript_ss_zee_commission_page', 'customdeploy_ss_zee_commission_page', ss_params);
             nlapiLogExecution('DEBUG', 'Scheduled script scheduled', status);
+            // var status_credit_memo = nlapiScheduleScript('customscript_ss_zee_commission_credit_memo', 'customdeploy_ss_zee_commission_credit_memo', ss_params);
+            // nlapiLogExecution('DEBUG', 'Scheduled script scheduled', status_credit_memo);
         }
 
         var form = nlapiCreateForm('Franchisee ' + zee_name + ' : Commissions Page');
