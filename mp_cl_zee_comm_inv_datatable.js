@@ -86,8 +86,8 @@ $(document).ready(function() {
                 title: "Bill / Bill Credit Payment Date",
                 type: "date"
             },
-            { title: "Invoice / Credit Memo Status" }
-            // { title: "paid_amount == total_commission" }
+            { title: "Invoice / Credit Memo Status" },
+            { title: "paid_amount == total_commission" }
         ],
         columnDefs: [{
                 targets: 3,
@@ -221,6 +221,7 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
     $('#result_bills').empty();
     var billsDataSet = [];
     var creditDataSet = [];
+    var totalAmountSet = [];
 
     if (!isNullorEmpty(invoices_rows)) {
         invoices_rows.forEach(function(invoice_row, index_ir) {
@@ -290,19 +291,6 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
             // var invoice_date_paid = dateNetsuiteToISO(invoice_row.idp);
             var invoice_date_paid = invoice_row.idp;
 
-            // Total Revenue (Excl. Credit Memo)
-            var total_rev = total_revenue;
-            var total_rev_credit = total_revenue;
-            total_rev += parseFloat(total_revenue);
-            $('#total_rev').val(total_rev);
-
-            // Total Commission (Excl. Bill Credit)
-            var total_comm = total_commission;
-            var total_comm_bill = total_commission
-            total_comm += parseFloat(total_commission);
-            $('#total_comm').val(total_comm);
-            console.log(total_commission);
-
             total_revenue = financial(total_revenue);
             total_commission = financial(total_commission);
 
@@ -357,24 +345,22 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
                 default:
                     break;
             }
-            // var credit_memo_payment_date = dateNetsuiteToISO(invoice_row.cmpd);
             var credit_memo_payment_date = invoice_row.cmpd;
 
-            // Total Revenue (Incl. Credit Memo)
-            var total_cred = '';
-            total_cred += (parseFloat(total_rev_credit) + parseFloat(credit_memo_amount));
-            $('#total_cred').val(total_cred);
-            // Total Commission (Incl. Bill Credit)
-            var total_bill = '';
-            total_bill += (parseFloat(total_comm_bill) + parseFloat(bill_credit_amount));
-            $('#total_bill').val(total_bill);
+            // // Total Revenue (Incl. Credit Memo)
+            // var total_cred = '';
+            // total_cred += (parseFloat(total_rev_credit) + parseFloat(credit_memo_amount));
+            // $('#total_cred').val(total_cred);
+            // // Total Commission (Incl. Bill Credit)
+            // var total_bill = '';
+            // total_bill += (parseFloat(total_comm_bill) + parseFloat(bill_credit_amount));
+            // $('#total_bill').val(total_bill);
 
             credit_memo_amount = financialNegative(credit_memo_amount);
             bill_credit_amount = financialNegative(bill_credit_amount);
 
 
             if (!isNullorEmpty(credit_memo_id)) {
-                // creditDataSet.push([credit_memo_name, credit_memo_date, credit_memo_customer_name, credit_memo_amount, bill_credit_amount, credit_memo_type, bill_credit_number, bill_credit_payment, bill_credit_payment_date, credit_memo_payment_date, credit_memo_status]);
                 creditDataSet.push([credit_memo_name, credit_memo_date, credit_memo_payment_date, credit_memo_customer_name, credit_memo_amount, bill_credit_amount, credit_memo_type, bill_credit_number, bill_credit_payment, bill_credit_payment_date, credit_memo_status]);
             }
         });
@@ -448,6 +434,13 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
     //     });
     // }
 
+    //Update Total Amounts
+    totalComm(billsDataSet);
+    totalRev(billsDataSet);
+    totalRevCred(billsDataSet, creditDataSet);
+    totalCommBill(billsDataSet, creditDataSet);
+
+
     // Update datatable rows.
     var datatable = $('#bills-preview').dataTable().api();
     datatable.clear();
@@ -462,6 +455,76 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
     return true;
 }
 
+function totalComm(billsDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[5]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    console.log('Total Comm: ' + total);
+    total = financial(total);
+    $('#total_comm').val(total);
+}
+
+function totalRev(billsDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[4]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    console.log('Total Rev: ' + total);
+    total = financial(total);
+    $('#total_rev').val(total);
+}
+
+function totalRevCred(billsDataSet, creditDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[4]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    creditDataSet.forEach(function (row){
+        row = financialNegToNumber(row[4]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total -= row;
+        }        
+    });
+    console.log('Total Rev with Cred: ' + total);
+    total = financial(total);
+    $('#total_cred').val(total);
+}
+
+function totalCommBill(billsDataSet, creditDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[5]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    creditDataSet.forEach(function (row){
+        row = financialNegToNumber(row[5]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total -= row;
+        }        
+    });
+    console.log('Total Comm with Bill: ' + total);
+    total = financial(total);
+    $('#total_bill').val(total);
+}
+
 /**
  * Create the CSV and store it in the hidden field 'custpage_table_csv' as a string.
  * @param {Array} billsDataSet The `billsDataSet` created in `loadDatatable()`.
@@ -471,12 +534,6 @@ function saveCsv(billsDataSet, creditDataSet) {
     headers = headers.slice(0, headers.length - 1).join(', ');
     var csv = headers + "\n";
     billsDataSet.forEach(function(row) {
-        // Old Code:
-        // row[3] = $.parseHTML(row[3])[0].text; // Credit Memo Name
-        // row[4] = financialToNumber(row[4]); // Credit Memo Amount
-        // row[5] = financialToNumber(row[5]); // Total Revenue
-        // row[6] = financialToNumber(row[6]); // Total Commission
-        // row[7] = financialToNumber(row[7]); // Bill Credit Memo
         row[0] = $.parseHTML(row[0])[0].text;
         row[4] = financialToNumber(row[4]);
         row[5] = financialToNumber(row[5]);
@@ -587,6 +644,18 @@ function financialNegative(x) {
 function financialToNumber(price) {
     // Matches the '$' and ',' symbols.
     var re = /\$|\,/g;
+    // Replaces all the matched symbols with the empty string ''.
+    return price.replace(re, '');
+}
+
+/**
+ * Converts a price string (as returned by the function `financial()`) to a String readable as a Number object
+ * @param   {String} price $4,138.47
+ * @returns {String} 4138.47
+ */
+function financialNegToNumber(price) {
+    // Matches the '$' and ',' symbols.
+    var re = /\-|\$|\,/g;
     // Replaces all the matched symbols with the empty string ''.
     return price.replace(re, '');
 }

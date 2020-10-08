@@ -9,7 +9,11 @@
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   Anesu Chakaingesu
+<<<<<<< HEAD
 * @Last Modified time: 2020-09-21 17:04:20
+=======
+* @Last Modified time: 2020-10-08 17:04:20
+>>>>>>> developer
 *
 */
 
@@ -118,6 +122,10 @@ function showCommissions(request, response) {
         form.addField('custpage_timestamp', 'text', 'Date to').setDisplayType('hidden').setDefaultValue(timestamp);
         form.addField('custpage_is_params', 'text', 'Is params').setDisplayType('hidden').setDefaultValue(is_params);
         form.addField('custpage_operator_id', 'text', 'Operator ID').setDisplayType('hidden');
+        form.addField('custpage_table_csv', 'text', 'Table CSV').setDisplayType('hidden');
+
+        form.addButton('download_csv', 'Export as CSV', 'downloadCsv()');
+
         form.setScript('customscript_cl_zee_commission_page');
         response.writePage(form);
     } else {

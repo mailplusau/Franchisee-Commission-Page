@@ -213,9 +213,6 @@ function calculateInvoices() {
                     } else if (credit_memo_status == '') {
                         credit_memo_status = 'V';
                     }
-                    // nlapiLogExecution('AUDIT', 'credit_memo_name', credit_memo_name);
-                    // nlapiLogExecution('AUDIT', 'credit_memo_amount', credit_memo_amount);
-                    // nlapiLogExecution('AUDIT', 'credit_memo_id', credit_memo_id);
                 });
 
                 var resultBillCredit = loadBillCredit(invoice_id);
@@ -224,9 +221,6 @@ function calculateInvoices() {
                     bill_credit_id = billCreditSet.getId();
                     bill_credit_payment_id = billCreditSet.getId();
                     bill_credit_payment_date = billCreditSet.getValue('trandate');
-                    // nlapiLogExecution('AUDIT', 'bill_credit_amount', bill_credit_amount);
-                    // nlapiLogExecution('AUDIT', 'bill_credit_id', bill_credit_id);
-                    // nlapiLogExecution('AUDIT', 'bill_credit_payment_date', bill_credit_payment_date);
                 });
 
                 invoices_rows.push({ in: invoice_number,
@@ -308,11 +302,11 @@ function loadBillSearch(zee_id, date_from, date_to, type, paid) {
     billSearch.addFilter(new nlobjSearchFilter('custbody_related_franchisee', null, 'is', zee_id));
     billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
 
-    // if (paid == 'credit_memo') {
-    //     billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'CustCred'));
-    // } else {
-    //     billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
-    // }
+    if (paid == 'credit_memo') {
+        billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'creditmemo.CustCred'));
+    } else {
+        billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
+    }
 
     if (!isNullorEmpty(date_from) && !isNullorEmpty(date_to)) {
         billSearch.addFilter(new nlobjSearchFilter('trandate', null, 'within', date_from, date_to));

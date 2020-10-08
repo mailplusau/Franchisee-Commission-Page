@@ -9,7 +9,7 @@
  *              No. of customers as well as the distribution date of the commission.
  * 
  * @Last Modified by:   Anesu Chakaingesu
- * @Last Modified time: 2020-09-17 17:05:00
+ * @Last Modified time: 2020-10-08 10:55:00
  *
  */
 
@@ -79,9 +79,7 @@ function pageInit() {
     });
 }
 
-function saveRecord() {
-
-}
+function saveRecord() {}
 
 /**
  * Hide the loading message.
@@ -325,6 +323,10 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
 
     hideLoading();
     $('.commission_table').removeClass('hide');
+    var dataSet = [];    
+    dataSet = [total_row, paid_row, unpaid_row, credit_memo_row, services_row, paid_services_row, unpaid_services_row, credit_memo_services_row, products_row, paid_products_row, unpaid_products_row, credit_memo_products_row]
+    saveCsv(dataSet);
+
     clearInterval(load_record_interval);
 }
 
@@ -334,7 +336,7 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
  * @param {Array}   amounts_array   Array of the values to enter in the commission_table selected row.
  */
 function setRow(row_selector, amounts_array) {
-    var [nb_invoices, revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
+    var row = [nb_invoices, revenues, revenues_tax, revenues_total, commissions, commissions_tax, commissions_total] = amounts_array;
 
     var zee_id = $('#zee_dropdown option:selected').val();
     var date_from = dateISOToNetsuite($('#date_from').val());
@@ -603,7 +605,7 @@ function commissionTable() {
     inlineQty += '<thead>';
     inlineQty += '<tr>';
     inlineQty += '<th scope="col" id="table_title"></th>';
-    inlineQty += '<th scope="col" id="table_nb_invoices">Number of Invoices/Credit Memos</th>';
+    inlineQty += '<th scope="col" id="table_nb_invoices">Number of Invoices / Credit Memos</th>';
     inlineQty += '<th scope="col" id="table_revenue" class="price_header">Revenue<br><span class="incl_excl_gst">[excl. GST]</span></th>';
     inlineQty += '<th scope="col" id="table_revenue_tax" class="price_header">Tax</th>';
     inlineQty += '<th scope="col" id="table_revenue_total" class="price_header">Revenue<br><span class="incl_excl_gst">[incl. GST]</span></th>';
@@ -690,6 +692,7 @@ function operatorTable(operator_dict) {
     inlineQty += '<thead>'
     inlineQty += '<tr>'
     inlineQty += '<th scope="col" id="table_operator_title" class="price_header"></th>'
+    // inlineQty += '<th scope="col" id="table_operator_commission_invoice" class="price_header">Number of Invoices<br></th>'
     inlineQty += '<th scope="col" id="table_operator_commission" class="price_header">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>'
     inlineQty += '<th scope="col" id="table_operator_commission_tax" class="price_header">Tax</th>'
     inlineQty += '<th scope="col" id="table_operator_commission_total" class="price_header">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>'
@@ -700,6 +703,9 @@ function operatorTable(operator_dict) {
     operator_id_array.forEach(function(operator_id) {
         var operator_object = operator_dict[operator_id];
         var operator_name = operator_object.name;
+        var operator_invoice_paid =  operator_object.nb_invoice_paid;
+        var operator_invoice_unpaid = operator_object.nb_invoice_unpaid; 
+        var operator_invoice_sum = (operator_invoice_paid + operator_invoice_unpaid);
         var paid_row = [operator_object.tax_paid_amount, operator_object.total_paid_amount];
         var unpaid_row = [operator_object.tax_unpaid_amount, operator_object.total_unpaid_amount];
 
@@ -713,18 +719,23 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row sum_row">';
         inlineQty += '<th scope="row" headers="table_operator_title">' + operator_name + '</th >'
+        // inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_sum + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + sum_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + sum_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total" class="price">' + sum_row[2] + '</td>'
         inlineQty += '</tr>'
+
         inlineQty += '<tr class="' + operator_id + '_row paid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Paid</th>'
+        // inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_paid + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + paid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + paid_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total" class="price">' + paid_row[2] + '</td>'
         inlineQty += '</tr>'
+
         inlineQty += '<tr class="' + operator_id + '_row unpaid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Unpaid</th>'
+        // inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_unpaid + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + unpaid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + unpaid_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total" class="price">' + unpaid_row[2] + '</td>'
@@ -803,4 +814,87 @@ function financialNegative(x) {
         // Matches the minus symbol and replaces with blank string.
         return '-' + x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
     }
+}
+
+/**
+ * Converts a price string (as returned by the function `financial()`) to a String readable as a Number object
+ * @param   {String} price $4,138.47
+ * @returns {String} 4138.47
+ */
+function financialToNumber(price) {
+    // Matches the '$' and ',' symbols.
+    var re = /\,/g;
+    // Replaces all the matched symbols with the empty string ''.
+    return price.replace(re, '');
+}
+
+/**
+ * Create the CSV and store it in the hidden field 'custpage_table_csv' as a string.
+ * @param {Array} dataSet The `billsDataSet` created in `loadDatatable()`.
+ */
+function saveCsv(dataSet) {
+    // var headers = $('#commission_table').DataTable().columns().header().toArray().map(function(x) { return x.innerText });
+    var headers = ["", "Number of Invoices", "Revenue [excl. GST]", "Tax", "Revenue [incl. GST]", "Income (combined)[excl. GST]", "Tax", "Income (combined)[incl. GST]"]
+    headers = headers.slice(0, headers.length); // .join(', ')
+    var csv = headers + "\n";
+    var rows = ['Total', 'Paid', 'Unpaid', 'Credit Memo', 'Services', 'Paid', 'Unpaid', 'Credit Memo','Products', 'Paid', 'Unpaid', 'Credit Memo'];
+    var count = 0;
+    console.log(csv);
+    console.log(dataSet);
+    dataSet.forEach(function(row) {
+        row[7] = financialToNumber(row[6]);
+        row[6] = financialToNumber(row[5]);
+        row[5] = financialToNumber(row[4]);
+        row[4] = financialToNumber(row[3]);
+        row[3] = financialToNumber(row[2]);
+        row[2] = financialToNumber(row[1]);
+        row[1] = row[0];
+        row[0] = rows[count];
+        count++;
+        csv += row.join(',');
+        console.log(row);
+        csv += "\n";
+        console.log(csv);
+    });
+    nlapiSetFieldValue('custpage_table_csv', csv);
+
+    return true;
+}
+
+/**
+ * Load the string stored in the hidden field 'custpage_table_csv'.
+ * Converts it to a CSV file.
+ * Creates a hidden link to download the file and triggers the click of the link.
+ */
+function downloadCsv() {
+    var csv = nlapiGetFieldValue('custpage_table_csv');
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style = "display: none";
+    var content_type = 'text/csv';
+    var csvFile = new Blob([csv], { type: content_type });
+    var url = window.URL.createObjectURL(csvFile);
+    var filename = 'Commissions_Page_' + getCsvName() + '.csv';
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+/**
+ * - The franchisee name `zee_name` in lowercase and separated by an underscore.
+ * - the `date_from` date
+ * - the `date_to` date
+ * @return  {String} 
+ */
+function getCsvName() {
+    // var zee_name = nlapiGetFieldValue('custpage_zee_id');
+    var zee_name = $('#zee_dropdown option:selected').text();
+    zee_name = zee_name.trim().split(' ').join('_');
+
+    var date_from = nlapiGetFieldValue('custpage_date_from');
+    var date_to = nlapiGetFieldValue('custpage_date_to');
+
+    var csv_name = zee_name + '_from_' + date_from + '_to_' + date_to;
+    return csv_name;
 }

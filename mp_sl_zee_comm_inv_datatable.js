@@ -183,13 +183,13 @@ function dateFilterSection() {
     // Date from field
     inlineQty += '<div class="col-xs-6 date_from">';
     inlineQty += '<div class="input-group">';
-    inlineQty += '<span class="input-group-addon" id="date_from_text">FROM</span>';
+    inlineQty += '<span class="input-group-addon" id="date_from_text">From</span>';
     inlineQty += '<input id="date_from" class="form-control date_from" type="date" disabled/>';
     inlineQty += '</div></div>';
     // Date to field
     inlineQty += '<div class="col-xs-6 date_to">';
     inlineQty += '<div class="input-group">';
-    inlineQty += '<span class="input-group-addon" id="date_to_text">TO</span>';
+    inlineQty += '<span class="input-group-addon" id="date_to_text">To</span>';
     inlineQty += '<input id="date_to" class="form-control date_to" type="date" disabled>';
     inlineQty += '</div></div></div></div>';
 
@@ -220,6 +220,7 @@ function totalAmountSection() {
     inlineQty += '<div class="col-xs-12 heading1"><h4><span class="label label-default col-xs-12">Total Amount in Table</span></h4></div>';
     inlineQty += '</div>';
     inlineQty += '</div>';
+    // inlineQty += '<style> .total_rev{font-weight: bold;} .total_comm{font-weight: bold;} .total_cred{font-weight: bold;} .total_bill{font-weight: bold;}</style>';
 
     inlineQty += '<div class="form-group container total_amount_section">';
     inlineQty += '<div class="row">';
@@ -227,26 +228,30 @@ function totalAmountSection() {
     inlineQty += '<div class="col-xs-6 total_rev">';
     inlineQty += '<div class="input-group">';
     inlineQty += '<span class="input-group-addon" id="total_rev_text">Total Revenue (Excl. Credit Memo)</span>';
-    inlineQty += '<input id="total_rev" class="form-control total_rev" type="text" disabled/>';
+    inlineQty += '<input id="total_rev" class="form-control total_rev" disabled/>';
     inlineQty += '</div></div>';
     // Total Commission (Excl. Bill Credit)
     inlineQty += '<div class="col-xs-6 total_comm">';
     inlineQty += '<div class="input-group">';
     inlineQty += '<span class="input-group-addon" id="total_comm_text">Total Commission (Excl. Bill Credit)</span>';
-    inlineQty += '<input id="total_comm" class="form-control total_comm" type="text" disabled>';
+    inlineQty += '<input id="total_comm" class="form-control total_comm" disabled>';
+    inlineQty += '</div></div>';
     inlineQty += '</div></div>';
     // Total Revenue (Incl. Credit Memo)
+    inlineQty += '<div class="form-group container total_excl_section">';
+    inlineQty += '<div class="row">';
     inlineQty += '<div class="col-xs-6 total_cred">';
     inlineQty += '<div class="input-group">';
     inlineQty += '<span class="input-group-addon" id="total_cred_text">Total Revenue (Incl. Credit Memo)</span>';
-    inlineQty += '<input id="total_cred" class="form-control total_cred" type="text" disabled/>';
+    inlineQty += '<input id="total_cred" class="form-control total_cred" disabled/>';
     inlineQty += '</div></div>';
     // Total Commission (Incl. Bill Credit)
     inlineQty += '<div class="col-xs-6 total_bill">';
     inlineQty += '<div class="input-group">';
     inlineQty += '<span class="input-group-addon" id="total_bill_text">Total Commission (Incl. Bill Credit)</span>';
-    inlineQty += '<input id="total_bill" class="form-control total_bill" type="text" disabled>';
-    inlineQty += '</div></div></div></div>';
+    inlineQty += '<input id="total_bill" class="form-control total_bill" disabled>';
+    inlineQty += '</div></div>';
+    inlineQty += '</div></div>';
 
     return inlineQty;
 }

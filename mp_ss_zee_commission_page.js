@@ -9,7 +9,7 @@
  *              No. of customers as well as the distribution date of the commission.
  * 
  * @Last Modified by:   Anesu Chakaingesu
- * @Last Modified time: 2020-08-12 17:04:20
+ * @Last Modified time: 2020-10-08 11:14:20
  */
 
 var adhoc_inv_deploy = 'customdeploy_ss_zee_commission_page';
@@ -27,11 +27,11 @@ function calculateCommissions() {
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_main_index'));
     var timestamp = ctx.getSetting('SCRIPT', 'custscript_timestamp3');
 
-    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
-    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
-    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
-    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
-    nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
+    // nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+    // nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+    // nlapiLogExecution('DEBUG', 'Param date_to', date_to);
+    // nlapiLogExecution('DEBUG', 'Param main_index', main_index);
+    // nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
     // Values to be calculated
     var nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_nb_invoices_array'));
@@ -115,7 +115,6 @@ function calculateCommissions() {
                 if (creditMemoResultSet.length > 0 || !isNullorEmpty(creditMemoResultSet)) {
                     creditMemoResultSet.forEach(function(creditMemoResult) {
                         var credit_id = creditMemoResult.getId();
-                        nlapiLogExecution('DEBUG', 'credit_id', credit_id);
                         var creditmemo = nlapiLoadRecord('creditmemo', credit_id);
                         var credit_memo_type = creditmemo.getLineItemValue('item', 'itemtype', 1); // Invoice Type
                         if (credit_memo_type == 'Service') {
@@ -131,7 +130,6 @@ function calculateCommissions() {
                             credit_memo_products_revenues_tax += parseFloat(creditmemo.getFieldValue('taxtotal'));
                             credit_memo_products_revenues_total += parseFloat(creditmemo.getFieldValue('total'));
                         }
-                        // nlapiLogExecution('DEBUG', 'credit_memo_services_revenues', credit_memo_services_revenues);
                     });
                 }
 
@@ -139,14 +137,11 @@ function calculateCommissions() {
                 if (billCreditResultSet.length > 0 || !isNullorEmpty(billCreditResultSet)) {
                     billCreditResultSet.forEach(function(billCreditResultSet) {
                         var bill_credit_id = billCreditResultSet.getId();
-                        nlapiLogExecution('DEBUG', 'bill_credit_id', bill_credit_id);
                         var billCredit = nlapiLoadRecord('vendorcredit', bill_credit_id);
                         // Commissions - Bill Credit
                         credit_memo_services_commissions_tax += parseFloat(billCredit.getFieldValue('taxtotal'));
                         credit_memo_services_commissions_total += parseFloat(billCredit.getFieldValue('total'));
                         credit_memo_services_commissions = credit_memo_services_commissions_total - credit_memo_services_commissions_tax;
-                        nlapiLogExecution('DEBUG', 'credit_memo_services_commissions_total', credit_memo_services_commissions_total);
-                        nlapiLogExecution('DEBUG', 'credit_memo_services_commissions', credit_memo_services_commissions);
                     });
                 }
 
@@ -182,6 +177,8 @@ function calculateCommissions() {
                         if (operator_dict[operator_id] == undefined) {
                             operator_dict[operator_id] = {
                                 name: operator_name,
+                                nb_invoice_paid: 0,
+                                nb_invoice_unpaid: 0,
                                 total_paid_amount: 0,
                                 tax_paid_amount: 0,
                                 total_unpaid_amount: 0,
@@ -200,11 +197,12 @@ function calculateCommissions() {
                             nlapiLogExecution('AUDIT', 'unpaid_products_commissions_tax unpaid products', unpaid_products_commissions_tax);
                             unpaid_products_revenues_total += total_amount;
                             unpaid_products_commissions_total += billing_amount;
+                            nb_unpaid_products += 1;
                             if (!isNullorEmpty(operator_id)) {
                                 operator_dict[operator_id].total_unpaid_amount += billing_amount;
                                 operator_dict[operator_id].tax_unpaid_amount += tax_commission;
+                                operator_dict[operator_id].nb_invoice_unpaid = nb_unpaid_products;
                             }
-                            nb_unpaid_products += 1;
                             break;
 
                         case 'Paid In Full': // paid
@@ -213,11 +211,15 @@ function calculateCommissions() {
                             nlapiLogExecution('AUDIT', 'paid_products_commissions_tax paid products', paid_products_commissions_tax);
                             paid_products_revenues_total += total_amount;
                             paid_products_commissions_total += billing_amount;
+                            nb_paid_products += 1;
+                            nlapiLogExecution('DEBUG', 'nb_paid_products', nb_paid_products);
                             if (!isNullorEmpty(operator_id)) {
                                 operator_dict[operator_id].total_paid_amount += billing_amount;
                                 operator_dict[operator_id].tax_paid_amount += tax_commission;
+                                operator_dict[operator_id].nb_invoice_paid = nb_paid_products;
+                                nlapiLogExecution('DEBUG', 'nb_paid_products operator', nb_paid_products);
                             }
-                            nb_paid_products += 1;
+                            
                             break;
 
                         default:
@@ -320,7 +322,7 @@ function loadCreditMemoInvoice(invoice_id) {
     var searchCreditMemo = nlapiLoadSearch('creditmemo', 'customsearch_credit_memo');
     var creditMemoFilter = [
         ['type', 'anyOf', 'CustCred'], 'AND', ['custbody_invoice_reference', 'is', invoice_id], 'AND', ['mainline', 'is', 'T']
-    ]; // 3169057
+    ];
     searchCreditMemo.setFilterExpression(creditMemoFilter);
     var resultCreditMemo = searchCreditMemo.runSearch();
     var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
