@@ -1,16 +1,16 @@
 /**
-* Module Description
-* 
-* NSVersion    Date                Author         
-* 2.00         2020-08-12 12:47:00 Raphael
-*
-* Description: Ability for the franchisee to see the commission they earned for both product as well as services.
-*              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
-*              No. of customers as well as the distribution date of the commission.
-* 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-08-12 12:47:00
-*/
+ * Module Description
+ * 
+ * NSVersion    Date                Author         
+ * 2.00         2020-08-12 12:47:00 Raphael
+ *
+ * Description: Ability for the franchisee to see the commission they earned for both product as well as services.
+ *              Show how many invoices got paid and how much commission got for those vs how many are unpaid and how much commission for those.
+ *              No. of customers as well as the distribution date of the commission.
+ * 
+ * @Last Modified by:   Anesu Chakaingesu
+ * @Last Modified time: 2020-10-08 11:14:20
+ */
 
 var adhoc_inv_deploy = 'customdeploy_ss_zee_commission_page';
 var prev_inv_deploy = null;
@@ -27,11 +27,11 @@ function calculateCommissions() {
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_main_index'));
     var timestamp = ctx.getSetting('SCRIPT', 'custscript_timestamp3');
 
-    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
-    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
-    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
-    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
-    nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
+    // nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+    // nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+    // nlapiLogExecution('DEBUG', 'Param date_to', date_to);
+    // nlapiLogExecution('DEBUG', 'Param main_index', main_index);
+    // nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
     // Values to be calculated
     var nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_nb_invoices_array'));
@@ -42,10 +42,18 @@ function calculateCommissions() {
     var bills_id_set = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_bills_id_set'));
     var operator_dict = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_operator_dict'));
 
+    var credit_memo_services_array = [credit_memo_services_revenues = 0, credit_memo_services_revenues_tax = 0, credit_memo_services_revenues_total = 0, credit_memo_services_commissions = 0, credit_memo_services_commissions_tax = 0, credit_memo_services_commissions_total = 0];
+    var credit_memo_products_array = [credit_memo_products_revenues = 0, credit_memo_products_revenues_tax = 0, credit_memo_products_revenues_total = 0, credit_memo_products_commissions = 0, credit_memo_products_commissions_tax = 0, credit_memo_products_commissions_total = 0];
+    var nb_credit_memo_array = [nb_credit_memo_services = 0, nb_credit_memo_products = 0];
+
+    // credit_memo_services_array = [credit_memo_services_revenues, credit_memo_services_revenues_tax, credit_memo_services_revenues_total, credit_memo_services_commissions, credit_memo_services_commissions_tax, credit_memo_services_commissions_total] = JSON.parse(ctx.getSetting('SCRIPT', 'credit_memo_services_array'));
+    // credit_memo_products_array = [credit_memo_products_revenues, credit_memo_products_revenues_tax, credit_memo_products_revenues_total, credit_memo_products_commissions, credit_memo_products_commissions_tax, credit_memo_products_commissions_total] = JSON.parse(ctx.getSetting('SCRIPT', 'credit_memo_products_array'));
+    // nb_credit_memo_array = [nb_credit_memo_services, nb_credit_memo_products] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_nb_credit_memo_array'));
+
     var billResultSet = loadBillSearch(zee_id, date_from, date_to);
     var billResultArray = billResultSet.getResults(main_index, main_index + 1000);
 
-    billResultArray.forEach(function (billResult, index) {
+    billResultArray.forEach(function(billResult, index) {
         index_in_callback = index;
 
         // If the limit of governance units is almost reached, 
@@ -69,7 +77,10 @@ function calculateCommissions() {
                 custscript_commissions_tax_array: JSON.stringify(commissions_tax_array),
                 custscript_commissions_total_array: JSON.stringify(commissions_total_array),
                 custscript_bills_id_set: JSON.stringify(bills_id_set),
-                custscript_operator_dict: JSON.stringify(operator_dict)
+                custscript_operator_dict: JSON.stringify(operator_dict),
+                custscript_credit_memo_services_array: JSON.stringify(credit_memo_services_array),
+                custscript_credit_memo_products_array: JSON.stringify(credit_memo_products_array),
+                custscript_nb_credit_memo_array: JSON.stringify(nb_credit_memo_array)
             };
 
             reschedule = nlapiScheduleScript(ctx.getScriptId(), ctx.getDeploymentId(), params)
@@ -99,10 +110,44 @@ function calculateCommissions() {
                 var billing_amount = parseFloat(billResult.getValue('amount'));
                 var tax_commission = Math.abs(parseFloat(billResult.getValue('taxtotal')));
 
-                if (isNullorEmpty(invoice_type)) { // Services
+                // // Credit Memo Info                   
+                var creditMemoResultSet = loadCreditMemoInvoice(invoice_id);
+                if (creditMemoResultSet.length > 0 || !isNullorEmpty(creditMemoResultSet)) {
+                    creditMemoResultSet.forEach(function(creditMemoResult) {
+                        var credit_id = creditMemoResult.getId();
+                        var creditmemo = nlapiLoadRecord('creditmemo', credit_id);
+                        var credit_memo_type = creditmemo.getLineItemValue('item', 'itemtype', 1); // Invoice Type
+                        if (credit_memo_type == 'Service') {
+                            // credit_memo_type = 'S';
+                            nb_credit_memo_services += 1;
+                            credit_memo_services_revenues += parseFloat(creditmemo.getFieldValue('subtotal'));
+                            credit_memo_services_revenues_tax += parseFloat(creditmemo.getFieldValue('taxtotal'));
+                            credit_memo_services_revenues_total += parseFloat(creditmemo.getFieldValue('total'));
+                        } else if (credit_memo_type == 'NonInvtPart') {
+                            // credit_memo_type = 'P';
+                            nb_credit_memo_products += 1;
+                            credit_memo_products_revenues += parseFloat(creditmemo.getFieldValue('subtotal'));
+                            credit_memo_products_revenues_tax += parseFloat(creditmemo.getFieldValue('taxtotal'));
+                            credit_memo_products_revenues_total += parseFloat(creditmemo.getFieldValue('total'));
+                        }
+                    });
+                }
 
+                var billCreditResultSet = loadBillCredit(invoice_id);
+                if (billCreditResultSet.length > 0 || !isNullorEmpty(billCreditResultSet)) {
+                    billCreditResultSet.forEach(function(billCreditResultSet) {
+                        var bill_credit_id = billCreditResultSet.getId();
+                        var billCredit = nlapiLoadRecord('vendorcredit', bill_credit_id);
+                        // Commissions - Bill Credit
+                        credit_memo_services_commissions_tax += parseFloat(billCredit.getFieldValue('taxtotal'));
+                        credit_memo_services_commissions_total += parseFloat(billCredit.getFieldValue('total'));
+                        credit_memo_services_commissions = credit_memo_services_commissions_total - credit_memo_services_commissions_tax;
+                    });
+                }
+
+                if (isNullorEmpty(invoice_type)) { // Service
                     switch (invoice_status) {
-                        case 'Open':        // unpaid
+                        case 'Open': // unpaid
                             unpaid_services_revenues_tax += revenue_tax;
                             unpaid_services_commissions_tax += tax_commission;
                             unpaid_services_revenues_total += total_amount;
@@ -110,7 +155,7 @@ function calculateCommissions() {
                             nb_unpaid_services += 1;
                             break;
 
-                        case 'Paid In Full':  // paid
+                        case 'Paid In Full': // paid
                             paid_services_revenues_tax += revenue_tax;
                             paid_services_commissions_tax += tax_commission;
                             paid_services_revenues_total += total_amount;
@@ -125,13 +170,15 @@ function calculateCommissions() {
 
                     // Operator dictionnary
                     var barcodeResultSet = loadBarcodesSearch(invoice_id);
-                    barcodeResultSet.forEachResult(function (barcodeResult) {
+                    barcodeResultSet.forEachResult(function(barcodeResult) {
                         operator_id = barcodeResult.getValue('custrecord_cust_prod_stock_operator');
                         var operator_name = barcodeResult.getText('custrecord_cust_prod_stock_operator');
 
                         if (operator_dict[operator_id] == undefined) {
                             operator_dict[operator_id] = {
                                 name: operator_name,
+                                nb_invoice_paid: 0,
+                                nb_invoice_unpaid: 0,
                                 total_paid_amount: 0,
                                 tax_paid_amount: 0,
                                 total_unpaid_amount: 0,
@@ -144,28 +191,33 @@ function calculateCommissions() {
                     })
 
                     switch (invoice_status) {
-                        case 'Open':        // unpaid
+                        case 'Open': // unpaid
                             unpaid_products_revenues_tax += revenue_tax;
                             unpaid_products_commissions_tax += tax_commission;
                             unpaid_products_revenues_total += total_amount;
                             unpaid_products_commissions_total += billing_amount;
+                            nb_unpaid_products += 1;
                             if (!isNullorEmpty(operator_id)) {
                                 operator_dict[operator_id].total_unpaid_amount += billing_amount;
                                 operator_dict[operator_id].tax_unpaid_amount += tax_commission;
+                                operator_dict[operator_id].nb_invoice_unpaid = nb_unpaid_products;
                             }
-                            nb_unpaid_products += 1;
                             break;
 
-                        case 'Paid In Full':  // paid
+                        case 'Paid In Full': // paid
                             paid_products_revenues_tax += revenue_tax;
                             paid_products_commissions_tax += tax_commission;
                             paid_products_revenues_total += total_amount;
                             paid_products_commissions_total += billing_amount;
+                            nb_paid_products += 1;
+                            nlapiLogExecution('DEBUG', 'nb_paid_products', nb_paid_products);
                             if (!isNullorEmpty(operator_id)) {
                                 operator_dict[operator_id].total_paid_amount += billing_amount;
                                 operator_dict[operator_id].tax_paid_amount += tax_commission;
+                                operator_dict[operator_id].nb_invoice_paid = nb_paid_products;
+                                nlapiLogExecution('DEBUG', 'nb_paid_products operator', nb_paid_products);
                             }
-                            nb_paid_products += 1;
+                            
                             break;
 
                         default:
@@ -177,6 +229,9 @@ function calculateCommissions() {
                 revenues_total_array = [paid_services_revenues_total, unpaid_services_revenues_total, paid_products_revenues_total, unpaid_products_revenues_total];
                 commissions_tax_array = [paid_services_commissions_tax, unpaid_services_commissions_tax, paid_products_commissions_tax, unpaid_products_commissions_tax];
                 commissions_total_array = [paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total];
+                credit_memo_services_array = [credit_memo_services_revenues, credit_memo_services_revenues_tax, credit_memo_services_revenues_total, credit_memo_services_commissions, credit_memo_services_commissions_tax, credit_memo_services_commissions_total];
+                credit_memo_products_array = [credit_memo_products_revenues, credit_memo_products_revenues_tax, credit_memo_products_revenues_total, credit_memo_products_commissions, credit_memo_products_commissions_tax, credit_memo_products_commissions_total];
+                nb_credit_memo_array = [nb_credit_memo_services, nb_credit_memo_products];
             }
         }
     });
@@ -189,7 +244,7 @@ function calculateCommissions() {
         // If the script will not be rescheduled, we make sure we didn't miss any results in the search.
         var billNextResultArray = billResultSet.getResults(main_index + index_in_callback + 1, main_index + index_in_callback + 2);
     }
-    
+
     nlapiLogExecution('DEBUG', '(billNextResultArray.length == 0)', (billNextResultArray.length == 0));
     if (billNextResultArray.length == 0) {
         // Save results in a custom record
@@ -208,6 +263,10 @@ function calculateCommissions() {
         zeeCommissionPageRecord.setFieldValue('custrecord_commissions_total_array', JSON.stringify(commissions_total_array));
         zeeCommissionPageRecord.setFieldValue('custrecord_bills_id_set', JSON.stringify(bills_id_set));
         zeeCommissionPageRecord.setFieldValue('custrecord_operator_dict', JSON.stringify(operator_dict));
+
+        zeeCommissionPageRecord.setFieldValue('custrecord_products_array', JSON.stringify(credit_memo_products_array));
+        zeeCommissionPageRecord.setFieldValue('custrecord_services_array', JSON.stringify(credit_memo_services_array));
+        zeeCommissionPageRecord.setFieldValue('custrecord_nb_credit_memo_array', JSON.stringify(nb_credit_memo_array));
         nlapiSubmitRecord(zeeCommissionPageRecord);
     }
 }
@@ -246,4 +305,40 @@ function loadBarcodesSearch(invoice_id) {
     var barcodeResultSet = barcodesSearch.runSearch();
 
     return barcodeResultSet;
+}
+
+/**
+ * Loads Credit Mmeos based on invoice Number
+ * @param {String} invoice_number
+ * @return {nlobjSearchResultSet} 'creditMemoResult'
+ */
+function loadCreditMemoInvoice(invoice_id) {
+    var searchCreditMemo = nlapiLoadSearch('creditmemo', 'customsearch_credit_memo');
+    var creditMemoFilter = [
+        ['type', 'anyOf', 'CustCred'], 'AND', ['custbody_invoice_reference', 'is', invoice_id], 'AND', ['mainline', 'is', 'T']
+    ];
+    searchCreditMemo.setFilterExpression(creditMemoFilter);
+    var resultCreditMemo = searchCreditMemo.runSearch();
+    var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
+
+    return resultsCreditMemo;
+}
+
+/**
+ * Update: Bill Credit Search Function
+ * Search Via Invoice Number
+ * @param {String} zee_id 
+ * @param {*} date_from 
+ * @param {*} date_to 
+ */
+function loadBillCredit(invoice_id) {
+    var searchCreditMemo = nlapiLoadSearch('vendorcredit', 'customsearch_bill_credit');
+    var creditMemoFilter = [
+        ['type', 'anyOf', 'VendCred'], 'AND', ['custbody_invoice_reference', 'is', invoice_id], 'AND', ['mainline', 'is', 'T']
+    ]; // 3169057
+    searchCreditMemo.setFilterExpression(creditMemoFilter);
+    var resultCreditMemo = searchCreditMemo.runSearch();
+    var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
+
+    return resultsCreditMemo;
 }

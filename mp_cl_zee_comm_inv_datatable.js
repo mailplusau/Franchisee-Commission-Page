@@ -1,15 +1,15 @@
 /**
-* Module Description
-* 
-* NSVersion    Date                Author         
-* 1.00         2020-07-20 09:39:00 Raphael
-*
-* Description: Ability for the franchisee to see the commission the details of the commissions they earned for each invoice.
-* 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-07-21 11:17:00
-*
-*/
+ * Module Description
+ * 
+ * NSVersion    Date                Author         
+ * 1.00         2020-07-20 09:39:00 Raphael
+ *
+ * Description: Ability for the franchisee to see the commission the details of the commissions they earned for each invoice.
+ * 
+ * @Last Modified by:   Anesu
+ * @Last Modified time: 2020-07-21 14:11:33
+ *
+ */
 
 var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
@@ -37,6 +37,10 @@ function pageInit() {
     var type = nlapiGetFieldValue('custpage_type');
     var paid = nlapiGetFieldValue('custpage_paid');
     var timestamp = nlapiGetFieldValue('custpage_timestamp');
+    /**
+     *  Credit Memo Field Value
+     */
+    // var credit_memo = nlapiGetFieldValue('custpage_credit_memo');
 
     if (!isNullorEmpty(date_from)) {
         date_from_input = dateNetsuiteToISO(date_from);
@@ -51,47 +55,47 @@ function pageInit() {
 }
 
 var billsDataSet = [];
-$(document).ready(function () {
+var creditDataSet = [];
+$(document).ready(function() {
     $('#bills-preview').DataTable({
         data: billsDataSet,
         pageLength: 100,
         columns: [
-            { title: "Invoice Number" },
+            { title: "Invoice Number / Credit Memo" },
             {
-                title: "Invoice Date",
+                title: "Invoice / Credit Memo Date",
+                type: "date"
+            },
+            {
+                title: "Invoice / Credit Memo Payment Date",
                 type: "date"
             },
             { title: "Customer Name" },
             {
-                title: "Total Revenue",
+                title: "Total Revenue [incl. GST]",
                 type: "num-fmt"
             },
             {
-                title: "Total Commission",
+                title: "Total Commission [incl. GST]",
                 type: "num-fmt"
             },
             { title: "Type" },
             { title: "Bill Number" },
             { title: "Bill Payment" },
             {
-                title: "Bill Payment Date",
+                title: "Bill / Bill Credit Payment Date",
                 type: "date"
             },
-            {
-                title: "Invoice Payment Date",
-                type: "date"
-            },
-            { title: "Invoice Status" },
+            { title: "Invoice / Credit Memo Status" },
             { title: "paid_amount == total_commission" }
         ],
-        columnDefs: [
-            {
-                targets: 2,
+        columnDefs: [{
+                targets: 3,
                 className: 'dt-body-left'
             },
             {
-                targets: 4,
-                createdCell: function (td, cellData, rowData, row, col) {
+                targets: 5,
+                createdCell: function(td, cellData, rowData, row, col) {
                     if (rowData[-1] === false) {
                         // If the paid amount is different to the commission amount,
                         // the cell background is red.
@@ -103,13 +107,26 @@ $(document).ready(function () {
                 targets: -1,
                 visible: false,
                 searchable: false
-            }],
-        rowCallback: function (row, data) {
+            },
+            {
+                targets: [0, 4, 5],
+                className: 'bolded'
+            }
+        ],
+        rowCallback: function(row, data) {
+            $('td:eq(1)', row).html
             if (data[10] == 'Open') {
                 if ($(row).hasClass('odd')) {
                     $(row).css('background-color', 'LemonChiffon');
                 } else {
                     $(row).css('background-color', 'LightYellow');
+                }
+            }
+            if (data[10] == 'Fully Applied') {
+                if ($(row).hasClass('odd')) {
+                    $(row).css('background-color', 'rgb(205, 92, 92, 0.5)');
+                } else {
+                    $(row).css('background-color', 'rgb(205, 92, 92, 0.4)');
                 }
             }
         }
@@ -183,9 +200,14 @@ function loadZCIDRecord(zee_id, date_from, date_to, type, paid, timestamp) {
     if (!isNullorEmpty(zcidSearchResult)) {
         var zcidRecord = zcidSearchResult[0];
         var invoices_rows = JSON.parse(zcidRecord.getValue('custrecord_zcid_invoices_rows'));
+        var credit_rows = JSON.parse(zcidRecord.getValue('custrecord_zcid_credit_rows'));
+
+        console.log(invoices_rows);
+        // console.log(credit_rows);
+
         var bills_id_set = JSON.parse(zcidRecord.getValue('custrecord_zcid_bills_id_set'));
         var customer_name_dict = JSON.parse(zcidRecord.getValue('custrecord_zcid_customer_name_dict'));
-        loadDatatable(invoices_rows, bills_id_set, customer_name_dict);
+        loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_dict);
     }
 }
 
@@ -195,16 +217,19 @@ function loadZCIDRecord(zee_id, date_from, date_to, type, paid, timestamp) {
  * @param {Array}   bills_id_set 
  * @param {Object}  customer_name_dict 
  */
-function loadDatatable(invoices_rows, bills_id_set, customer_name_dict) {
+function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_dict) {
     $('#result_bills').empty();
     var billsDataSet = [];
+    var creditDataSet = [];
+    var totalAmountSet = [];
 
     if (!isNullorEmpty(invoices_rows)) {
-        invoices_rows.forEach(function (invoice_row, index_ir) {
+        invoices_rows.forEach(function(invoice_row, index_ir) {
             var invoice_number = 'Invoice #INV' + invoice_row.in;
             var invoice_id = invoice_row.inid;
             var invoice_link = '<a href="' + baseURL + '/app/accounting/transactions/custinvc.nl?id=' + invoice_id + '">' + invoice_number + '</a>'
-            var invoice_date = dateNetsuiteToISO(invoice_row.id);
+                // var invoice_date = dateNetsuiteToISO(invoice_row.id);
+            var invoice_date = invoice_row.id;
             var customer_id = invoice_row.ci;
             var customer_name = customer_name_dict[customer_id];
             var total_revenue = invoice_row.tr;
@@ -230,6 +255,18 @@ function loadDatatable(invoices_rows, bills_id_set, customer_name_dict) {
                 bill_number = '<a href="' + baseURL + '/app/accounting/transactions/vendbill.nl?id=' + bill_id + '">' + bill_number + '</a>';
             }
 
+            /**
+             *  Credit Memo Information in Datatable.
+             */
+            // var credit_memo_id = invoice_row.cmid; // Invoice Info from parameters that contains credit memo. 
+            // var credit_memo_name = (!isNullorEmpty(credit_memo_id)) ? 'Credit Memo #' + invoice_row.cmn : '';
+
+            // if (userRole != 1000) {
+            //     credit_memo_name = '<a href="' + baseURL + '/app/accounting/transactions/custcred.nl?id=' + credit_memo_id + '">' + credit_memo_name + '</a>';
+            // }
+            // var credit_memo_amount = invoice_row.cma // Credit Memo Amount
+            // var bill_credit_memo = invoice_row.bcm;
+
             // For the positive commission, check that the paid amount equals the commission amount.
             // If not, the cell background will be colored in red.
             var bill_payment_id = invoice_row.bpi;
@@ -251,41 +288,264 @@ function loadDatatable(invoices_rows, bills_id_set, customer_name_dict) {
                 default:
                     break;
             }
-            var invoice_date_paid = dateNetsuiteToISO(invoice_row.idp);
+            // var invoice_date_paid = dateNetsuiteToISO(invoice_row.idp);
+            var invoice_date_paid = invoice_row.idp;
 
             total_revenue = financial(total_revenue);
             total_commission = financial(total_commission);
-            billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_date_paid, invoice_status, paid_amount_is_total_commission]);
-            // return true;
+
+            // billsDataSet.push([invoice_number, invoice_date, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_date_paid, invoice_status, paid_amount_is_total_commission]);
+            billsDataSet.push([invoice_number, invoice_date, invoice_date_paid, customer_name, total_revenue, total_commission, invoice_type, bill_number, bill_payment, bill_payment_date, invoice_status, paid_amount_is_total_commission]);
+
+            // __________________________________________________________________________________________________________________
+            var credit_memo_id = invoice_row.cmid; // Invoice Info from parameters that contains credit memo. 
+            var credit_memo_name = (!isNullorEmpty(credit_memo_id)) ? 'Credit Memo #' + invoice_row.cmn : '';
+            if (userRole != 1000) {
+                credit_memo_name = '<a href="' + baseURL + '/app/accounting/transactions/custcred.nl?id=' + credit_memo_id + '">' + credit_memo_name + '</a>';
+            }
+            // var credit_memo_date = dateNetsuiteToISO(invoice_row.cmd);
+            var credit_memo_date = invoice_row.cmd;
+            var credit_memo_customer_name = invoice_row.cmcm;
+            // var customer_name = customer_name_dict[credit_memo_customer_id];
+            var credit_memo_amount = invoice_row.cma // Credit Memo Amount
+            var bill_credit_amount = invoice_row.bca; // Bill Credit Amount
+            var credit_memo_type = '';
+            switch (invoice_row.cmt) {
+                case 'S':
+                    credit_memo_type = 'Services';
+                    break;
+                case 'P':
+                    credit_memo_type = 'Products';
+                    break;
+                default:
+                    break;
+            }
+            var bill_credit_id = invoice_row.bcid;
+            var bill_credit_number = (!isNullorEmpty(bill_credit_id)) ? 'Bill Credit #' + bill_credit_id : '';
+            if (userRole != 1000) {
+                bill_credit_number = '<a href="' + baseURL + '/app/accounting/transactions/vendcred.nl?id=' + bill_credit_id + '">' + bill_credit_number + '</a>';
+            }
+
+            var bill_credit_payment_id = invoice_row.bcpid;
+            var bill_credit_payment = (!isNullorEmpty(bill_credit_payment_id)) ? 'Bill Credit #' + bill_credit_payment_id : '';
+            var bill_credit_payment_date = invoice_row.bcpd;
+            var credit_memo_payment_date = invoice_row.cmpd;
+
+            var credit_memo_status = '';
+            switch (invoice_row.cms) {
+                case 'O':
+                    credit_memo_status = 'Open';
+                    break;
+                case 'F':
+                    credit_memo_status = 'Fully Applied';
+                    break;
+                case 'V':
+                    credit_memo_status = 'Voided';
+                    break;
+                default:
+                    break;
+            }
+            var credit_memo_payment_date = invoice_row.cmpd;
+
+            // // Total Revenue (Incl. Credit Memo)
+            // var total_cred = '';
+            // total_cred += (parseFloat(total_rev_credit) + parseFloat(credit_memo_amount));
+            // $('#total_cred').val(total_cred);
+            // // Total Commission (Incl. Bill Credit)
+            // var total_bill = '';
+            // total_bill += (parseFloat(total_comm_bill) + parseFloat(bill_credit_amount));
+            // $('#total_bill').val(total_bill);
+
+            credit_memo_amount = financialNegative(credit_memo_amount);
+            bill_credit_amount = financialNegative(bill_credit_amount);
+
+
+            if (!isNullorEmpty(credit_memo_id)) {
+                creditDataSet.push([credit_memo_name, credit_memo_date, credit_memo_payment_date, credit_memo_customer_name, credit_memo_amount, bill_credit_amount, credit_memo_type, bill_credit_number, bill_credit_payment, bill_credit_payment_date, credit_memo_status]);
+            }
         });
     }
+
+    // if (!isNullorEmpty(credit_rows)){
+    //     credit_rows.forEach(function (credit_row){
+    //         /**
+    //          *  Credit Memo Information in Datatable.
+    //          */
+    //         var credit_memo_id = credit_row.cmid; // Invoice Info from parameters that contains credit memo. 
+    //         var credit_memo_name = (!isNullorEmpty(credit_memo_id)) ? 'Credit Memo #' + credit_row.cmn : '';
+    //         if (userRole != 1000) {
+    //             credit_memo_name = '<a href="' + baseURL + '/app/accounting/transactions/custcred.nl?id=' + credit_memo_id + '">' + credit_memo_name + '</a>';
+    //         }
+    //         var credit_memo_date = dateNetsuiteToISO(credit_row.cmd);
+
+    //         var credit_memo_customer_id = credit_row.cmi;
+    //         // var customer_name = customer_name_dict[credit_memo_customer_id];
+    //         var customer_name = 'ye';
+    //         var credit_memo_amount = credit_row.cma // Credit Memo Amount
+    //         var bill_credit_amount = credit_row.bca; // Bill Credit Amount
+
+    //         var credit_memo_type = '';
+    //         switch (credit_row.cmt) {
+    //             case 'S':
+    //                 credit_memo_type = 'Services';
+    //                 // invoice_number = invoice_link;
+    //                 break;
+    //             case 'P':
+    //                 credit_memo_type = 'Products';
+    //                 if (userRole != 1000) {
+    //                     // invoice_number = invoice_link;
+    //                 }
+    //                 break;
+    //             default:
+    //                 break;
+    //         }
+    //         var bill_credit_id = credit_row.bcid;
+    //         var bill_credit_number = 'Bill Credit #' + bill_id;
+    //         if (userRole != 1000) {
+    //             bill_credit_number = '<a href="' + baseURL + '/app/accounting/transactions/vendcred.nl?id=' + bill_credit_id + '">' + bill_credit_number + '</a>';
+    //         }
+
+    //         var bill_credit_payment_id = credit_row.bcpid;
+    //         var bill_credit_payment = (!isNullorEmpty(bill_credit_payment_id)) ? 'Bill Credit #' + bill_credit_payment_id : '';
+    //         var bill_credit_payment_date = credit_row.bcpd;
+    //         var credit_memo_payment_date = credit_row.cmpd;
+
+    //         var credit_memo_status = '';
+    //         switch (credit_row.cms) {
+    //             case 'O':
+    //                 invoice_status = 'Open';
+    //                 break;
+    //             case 'F':
+    //                 invoice_status = 'Fully Applied';
+    //                 break;
+    //             case 'V':
+    //                 invoice_status = 'Voided';
+    //                 break;
+    //             default:
+    //                 break;
+    //         }
+    //         var credit_memo_payment_date = dateNetsuiteToISO(credit_row.cmpd);
+    //         credit_memo_amount = financialNegative(credit_memo_amount);
+    //         bill_credit_amount = financialNegative(bill_credit_amount);
+
+    //         if (credit_memo_id != ''){
+    //     creditDataSet.push([credit_memo_name, credit_memo_date, credit_memo_customer_name, credit_memo_amount, bill_credit_amount, credit_memo_type, bill_credit_number, bill_credit_payment, bill_credit_payment_date, credit_memo_payment_date, credit_memo_status]);
+    // }
+    //     });
+    // }
+
+    //Update Total Amounts
+    totalComm(billsDataSet);
+    totalRev(billsDataSet);
+    totalRevCred(billsDataSet, creditDataSet);
+    totalCommBill(billsDataSet, creditDataSet);
+
 
     // Update datatable rows.
     var datatable = $('#bills-preview').dataTable().api();
     datatable.clear();
+    datatable.rows.add(creditDataSet);
     datatable.rows.add(billsDataSet);
     datatable.draw();
 
     $('.loading_section').addClass('hide');
     clearInterval(load_record_interval);
-    saveCsv(billsDataSet);
+    saveCsv(billsDataSet, creditDataSet);
 
     return true;
+}
+
+function totalComm(billsDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[5]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    console.log('Total Comm: ' + total);
+    total = financial(total);
+    $('#total_comm').val(total);
+}
+
+function totalRev(billsDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[4]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    console.log('Total Rev: ' + total);
+    total = financial(total);
+    $('#total_rev').val(total);
+}
+
+function totalRevCred(billsDataSet, creditDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[4]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    creditDataSet.forEach(function (row){
+        row = financialNegToNumber(row[4]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total -= row;
+        }        
+    });
+    console.log('Total Rev with Cred: ' + total);
+    total = financial(total);
+    $('#total_cred').val(total);
+}
+
+function totalCommBill(billsDataSet, creditDataSet){
+    var total = 0;
+    billsDataSet.forEach(function (row){
+        row = financialToNumber(row[5]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total += row;
+        }        
+    });
+    creditDataSet.forEach(function (row){
+        row = financialNegToNumber(row[5]);
+        row = parseFloat(row);
+        if (!isNaN(row)){
+            total -= row;
+        }        
+    });
+    console.log('Total Comm with Bill: ' + total);
+    total = financial(total);
+    $('#total_bill').val(total);
 }
 
 /**
  * Create the CSV and store it in the hidden field 'custpage_table_csv' as a string.
  * @param {Array} billsDataSet The `billsDataSet` created in `loadDatatable()`.
  */
-function saveCsv(billsDataSet) {
-    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function (x) { return x.innerText });
+function saveCsv(billsDataSet, creditDataSet) {
+    var headers = $('#bills-preview').DataTable().columns().header().toArray().map(function(x) { return x.innerText });
     headers = headers.slice(0, headers.length - 1).join(', ');
     var csv = headers + "\n";
-    billsDataSet.forEach(function (row) {
+    billsDataSet.forEach(function(row) {
         row[0] = $.parseHTML(row[0])[0].text;
-        row[3] = financialToNumber(row[3]);
         row[4] = financialToNumber(row[4]);
-        row[6] = $.parseHTML(row[6])[0].text;
+        row[5] = financialToNumber(row[5]);
+        row[7] = $.parseHTML(row[7])[0].text;
+        csv += row.join(',');
+        csv += "\n";
+    });
+    creditDataSet.forEach(function(row) {
+        row[0] = $.parseHTML(row[0])[0].text;
+        row[4] = financialToNumber(row[4]);
+        row[5] = financialToNumber(row[5]);
+        row[7] = $.parseHTML(row[7])[0].text;
         csv += row.join(',');
         csv += "\n";
     });
@@ -295,10 +555,10 @@ function saveCsv(billsDataSet) {
 }
 
 /**
-* Load the string stored in the hidden field 'custpage_table_csv'.
-* Converts it to a CSV file.
-* Creates a hidden link to download the file and triggers the click of the link.
-*/
+ * Load the string stored in the hidden field 'custpage_table_csv'.
+ * Converts it to a CSV file.
+ * Creates a hidden link to download the file and triggers the click of the link.
+ */
 function downloadCsv() {
     var csv = nlapiGetFieldValue('custpage_table_csv');
     var a = document.createElement("a");
@@ -346,13 +606,33 @@ function getCsvName() {
  * @returns {String} The same number, formatted in Australian dollars.
  */
 function financial(x) {
-    if (typeof (x) == 'string') {
+    if (typeof(x) == 'string') {
         x = parseFloat(x);
     }
-    if (isNullorEmpty(x)) {
+    if (isNullorEmpty(x) || isNaN(x)) {
         return "$0.00";
     } else {
         return x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
+    }
+}
+
+/**
+ * @param   {Number} x
+ * @returns {String} The same number, but converted to a negative value & formatted in Australian dollars.
+ */
+function financialNegative(x) {
+    var re = /\-/g;
+    x = x.replace(re, '');
+
+    if (typeof(x) == 'string') {
+        x = parseFloat(x);
+    }
+
+    if (isNaN(x)) {
+        return "$0.00";
+    } else {
+        // Matches the minus symbol and replaces with blank string.
+        return '-' + x.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
     }
 }
 
@@ -364,6 +644,18 @@ function financial(x) {
 function financialToNumber(price) {
     // Matches the '$' and ',' symbols.
     var re = /\$|\,/g;
+    // Replaces all the matched symbols with the empty string ''.
+    return price.replace(re, '');
+}
+
+/**
+ * Converts a price string (as returned by the function `financial()`) to a String readable as a Number object
+ * @param   {String} price $4,138.47
+ * @returns {String} 4138.47
+ */
+function financialNegToNumber(price) {
+    // Matches the '$' and ',' symbols.
+    var re = /\-|\$|\,/g;
     // Replaces all the matched symbols with the empty string ''.
     return price.replace(re, '');
 }
