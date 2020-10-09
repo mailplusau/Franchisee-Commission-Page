@@ -37,10 +37,6 @@ function pageInit() {
     var type = nlapiGetFieldValue('custpage_type');
     var paid = nlapiGetFieldValue('custpage_paid');
     var timestamp = nlapiGetFieldValue('custpage_timestamp');
-    /**
-     *  Credit Memo Field Value
-     */
-    // var credit_memo = nlapiGetFieldValue('custpage_credit_memo');
 
     if (!isNullorEmpty(date_from)) {
         date_from_input = dateNetsuiteToISO(date_from);
@@ -87,7 +83,7 @@ $(document).ready(function() {
                 type: "date"
             },
             { title: "Invoice / Credit Memo Status" },
-            { title: "paid_amount == total_commission" }
+            {} //title: "paid_amount == total_commission" 
         ],
         columnDefs: [{
                 targets: 3,
@@ -221,7 +217,6 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
     $('#result_bills').empty();
     var billsDataSet = [];
     var creditDataSet = [];
-    var totalAmountSet = [];
 
     if (!isNullorEmpty(invoices_rows)) {
         invoices_rows.forEach(function(invoice_row, index_ir) {
@@ -347,21 +342,12 @@ function loadDatatable(invoices_rows, credit_rows, bills_id_set, customer_name_d
             }
             var credit_memo_payment_date = invoice_row.cmpd;
 
-            // // Total Revenue (Incl. Credit Memo)
-            // var total_cred = '';
-            // total_cred += (parseFloat(total_rev_credit) + parseFloat(credit_memo_amount));
-            // $('#total_cred').val(total_cred);
-            // // Total Commission (Incl. Bill Credit)
-            // var total_bill = '';
-            // total_bill += (parseFloat(total_comm_bill) + parseFloat(bill_credit_amount));
-            // $('#total_bill').val(total_bill);
-
             credit_memo_amount = financialNegative(credit_memo_amount);
             bill_credit_amount = financialNegative(bill_credit_amount);
 
 
             if (!isNullorEmpty(credit_memo_id)) {
-                creditDataSet.push([credit_memo_name, credit_memo_date, credit_memo_payment_date, credit_memo_customer_name, credit_memo_amount, bill_credit_amount, credit_memo_type, bill_credit_number, bill_credit_payment, bill_credit_payment_date, credit_memo_status]);
+                creditDataSet.push([credit_memo_name, credit_memo_date, credit_memo_payment_date, credit_memo_customer_name, credit_memo_amount, bill_credit_amount, credit_memo_type, bill_credit_number, bill_credit_payment, bill_credit_payment_date, credit_memo_status, paid_amount_is_total_commission]);
             }
         });
     }

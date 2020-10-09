@@ -187,37 +187,33 @@ function calculateCommissions() {
                             return false;
                         } else {
                             return true;
-                        }
-                    })
-
+                        } 
+                    });
+                    
                     switch (invoice_status) {
                         case 'Open': // unpaid
                             unpaid_products_revenues_tax += revenue_tax;
                             unpaid_products_commissions_tax += tax_commission;
-                            nlapiLogExecution('AUDIT', 'unpaid_products_commissions_tax unpaid products', unpaid_products_commissions_tax);
                             unpaid_products_revenues_total += total_amount;
                             unpaid_products_commissions_total += billing_amount;
                             nb_unpaid_products += 1;
                             if (!isNullorEmpty(operator_id)) {
                                 operator_dict[operator_id].total_unpaid_amount += billing_amount;
                                 operator_dict[operator_id].tax_unpaid_amount += tax_commission;
-                                operator_dict[operator_id].nb_invoice_unpaid = nb_unpaid_products;
+                                operator_dict[operator_id].nb_invoice_unpaid += total_amount;
                             }
                             break;
 
                         case 'Paid In Full': // paid
                             paid_products_revenues_tax += revenue_tax;
                             paid_products_commissions_tax += tax_commission;
-                            nlapiLogExecution('AUDIT', 'paid_products_commissions_tax paid products', paid_products_commissions_tax);
                             paid_products_revenues_total += total_amount;
                             paid_products_commissions_total += billing_amount;
                             nb_paid_products += 1;
-                            nlapiLogExecution('DEBUG', 'nb_paid_products', nb_paid_products);
                             if (!isNullorEmpty(operator_id)) {
                                 operator_dict[operator_id].total_paid_amount += billing_amount;
                                 operator_dict[operator_id].tax_paid_amount += tax_commission;
-                                operator_dict[operator_id].nb_invoice_paid = nb_paid_products;
-                                nlapiLogExecution('DEBUG', 'nb_paid_products operator', nb_paid_products);
+                                operator_dict[operator_id].nb_invoice_paid += total_amount;
                             }
                             
                             break;
@@ -249,9 +245,6 @@ function calculateCommissions() {
 
     nlapiLogExecution('DEBUG', '(billNextResultArray.length == 0)', (billNextResultArray.length == 0));
 
-    nlapiLogExecution('DEBUG', 'nb_credit_memo_array', nb_credit_memo_array);
-    nlapiLogExecution('DEBUG', 'credit_memo_services_array', credit_memo_services_array);
-    nlapiLogExecution('DEBUG', 'credit_memo_products_array', credit_memo_products_array);
     if (billNextResultArray.length == 0) {
         // Save results in a custom record
         var zcp_record_name = 'zee_id:' + zee_id + '_date_from:' + date_from + '_date_to:' + date_to;
@@ -342,6 +335,21 @@ function loadBillCredit(invoice_id) {
     var creditMemoFilter = [
         ['type', 'anyOf', 'VendCred'], 'AND', ['custbody_invoice_reference', 'is', invoice_id], 'AND', ['mainline', 'is', 'T']
     ]; // 3169057
+    searchCreditMemo.setFilterExpression(creditMemoFilter);
+    var resultCreditMemo = searchCreditMemo.runSearch();
+    var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
+
+    return resultsCreditMemo;
+}
+
+/**
+ * Update: Bill Credit Search Function
+ * Search Via Invoice Number
+ * @param {String} zee_id
+ */
+function loadOpInvoice(operator) {
+    var searchCreditMemo = nlapiLoadSearch('customrecord_mp_ap_product_order', 'customsearch_ap_order_all_list_2_3');
+    var creditMemoFilter = [["custrecord_ap_line_item_operator", 'is', operator]]; // 3169057
     searchCreditMemo.setFilterExpression(creditMemoFilter);
     var resultCreditMemo = searchCreditMemo.runSearch();
     var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);

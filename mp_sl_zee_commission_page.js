@@ -9,11 +9,7 @@
 *              No. of customers as well as the distribution date of the commission.
 * 
 * @Last Modified by:   Anesu Chakaingesu
-<<<<<<< HEAD
-* @Last Modified time: 2020-09-21 17:04:20
-=======
 * @Last Modified time: 2020-10-08 17:04:20
->>>>>>> developer
 *
 */
 

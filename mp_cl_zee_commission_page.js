@@ -231,10 +231,8 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
 
     // Calculate Sum rows (Services, Products, Paid, Unpaid and Total)
     var services_row_sum = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = sum2arrays(paid_services_row, unpaid_services_row);
-    console.log(credit_memo_services_row);
     var services_row = [services_revenues, services_revenues_tax, services_revenues_total, services_commissions, services_commissions_tax, services_commissions_total] = subtract2arrays(services_row_sum, credit_memo_services_row);
     var products_row_sum = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = sum2arrays(paid_products_row, unpaid_products_row);
-    console.log(credit_memo_products_row);
     var products_row = [products_revenues, products_revenues_tax, products_revenues_total, products_commissions, products_commissions_tax, products_commissions_total] = subtract2arrays(products_row_sum, credit_memo_products_row);
     var paid_row = [paid_revenues, paid_revenues_tax, paid_revenues_total, paid_commissions, paid_commissions_tax, paid_commissions_total] = sum2arrays(paid_services_row, paid_products_row);
     var unpaid_row = [unpaid_revenues, unpaid_revenues_tax, unpaid_revenues_total, unpaid_commissions, unpaid_commissions_tax, unpaid_commissions_total] = sum2arrays(unpaid_services_row, unpaid_products_row);
@@ -692,7 +690,7 @@ function operatorTable(operator_dict) {
     inlineQty += '<thead>'
     inlineQty += '<tr>'
     inlineQty += '<th scope="col" id="table_operator_title" class="price_header"></th>'
-    // inlineQty += '<th scope="col" id="table_operator_commission_invoice" class="price_header">Number of Invoices<br></th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_invoice" class="price_header">Invoice Amount</th>'
     inlineQty += '<th scope="col" id="table_operator_commission" class="price_header">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>'
     inlineQty += '<th scope="col" id="table_operator_commission_tax" class="price_header">Tax</th>'
     inlineQty += '<th scope="col" id="table_operator_commission_total" class="price_header">Income (combined)<br><span class="incl_excl_gst">[incl. GST]</span></th>'
@@ -705,7 +703,9 @@ function operatorTable(operator_dict) {
         var operator_name = operator_object.name;
         var operator_invoice_paid =  operator_object.nb_invoice_paid;
         var operator_invoice_unpaid = operator_object.nb_invoice_unpaid; 
-        var operator_invoice_sum = (operator_invoice_paid + operator_invoice_unpaid);
+        var operator_invoice_sum = financial(operator_invoice_paid + operator_invoice_unpaid);
+        operator_invoice_paid = financial(operator_invoice_paid);
+        operator_invoice_unpaid = financial(operator_invoice_unpaid);
         var paid_row = [operator_object.tax_paid_amount, operator_object.total_paid_amount];
         var unpaid_row = [operator_object.tax_unpaid_amount, operator_object.total_unpaid_amount];
 
@@ -719,7 +719,7 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row sum_row">';
         inlineQty += '<th scope="row" headers="table_operator_title">' + operator_name + '</th >'
-        // inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_sum + '</td>'
+        inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_sum + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + sum_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + sum_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total" class="price">' + sum_row[2] + '</td>'
@@ -727,7 +727,7 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row paid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Paid</th>'
-        // inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_paid + '</td>'
+        inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_paid + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + paid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + paid_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total" class="price">' + paid_row[2] + '</td>'
@@ -735,7 +735,7 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row unpaid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Unpaid</th>'
-        // inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_unpaid + '</td>'
+        inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_unpaid + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + unpaid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + unpaid_row[1] + '</td>'
         inlineQty += '<td headers="table_operator_commission_total" class="price">' + unpaid_row[2] + '</td>'
@@ -839,8 +839,6 @@ function saveCsv(dataSet) {
     var csv = headers + "\n";
     var rows = ['Total', 'Paid', 'Unpaid', 'Credit Memo', 'Services', 'Paid', 'Unpaid', 'Credit Memo','Products', 'Paid', 'Unpaid', 'Credit Memo'];
     var count = 0;
-    console.log(csv);
-    console.log(dataSet);
     dataSet.forEach(function(row) {
         row[7] = financialToNumber(row[6]);
         row[6] = financialToNumber(row[5]);
@@ -852,9 +850,7 @@ function saveCsv(dataSet) {
         row[0] = rows[count];
         count++;
         csv += row.join(',');
-        console.log(row);
         csv += "\n";
-        console.log(csv);
     });
     nlapiSetFieldValue('custpage_table_csv', csv);
 
