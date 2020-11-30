@@ -27,8 +27,8 @@ function calculateInvoices() {
     nlapiLogExecution('DEBUG', 'JSON.stringify(billRecord) [id:3169336]', JSON.stringify(billRecord));
     // var links = billRecord.links;
     // var links_0 = billRecord.links[0];
-    // nlapiLogExecution('DEBUG', 'billRecord.links [id:3169336]', JSON.stringify(links));
-    // nlapiLogExecution('DEBUG', 'billRecord.links[0] [id:3169336]', links_0);
+    nlapiLogExecution('DEBUG', 'billRecord.links [id:3169336]', JSON.stringify(links));
+    nlapiLogExecution('DEBUG', 'billRecord.links[0] [id:3169336]', links_0);
     // END TEST
 
     // Script parameters
@@ -298,12 +298,18 @@ function calculateInvoices() {
  * @return  {nlobjSearchResultSet} `billResultSet`
  */
 function loadBillSearch(zee_id, date_from, date_to, type, paid) {
-    var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page');
+    var billSearch = nlapiLoadSearch('vendorbill', 'customsearch_zee_commission_page_4');
     billSearch.addFilter(new nlobjSearchFilter('custbody_related_franchisee', null, 'is', zee_id));
-    billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
+    // billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
 
     if (paid == 'credit_memo') {
-        billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'creditmemo.CustCred'));
+        var creditSearch = nlapiLoadSearch('customrecord_zee_commission_page', 'customsearch_zee_commission_page_4')
+        if (type == 'products') {
+            creditSearch.addFilter(new nlobjSearchFilter('custbody_related_inv_type', null, 'noneof', '@NONE@'));
+        } else if (type == 'services') {
+            creditSearch.addFilter(new nlobjSearchFilter('custbody_related_inv_type', null, 'anyof', '@NONE@'));
+        }
+        var creditResultSet = creditSearch.runSearch();
     } else {
         billSearch.addFilter(new nlobjSearchFilter('type', null, 'anyof', 'VendBill'));
     }
@@ -331,7 +337,7 @@ function loadBillSearch(zee_id, date_from, date_to, type, paid) {
     }
     var billResultSet = billSearch.runSearch();
 
-    return billResultSet;
+    return billResultSet + creditResultSet;
 }
 
 /**

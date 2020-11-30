@@ -27,11 +27,11 @@ function calculateCommissions() {
     var main_index = parseInt(ctx.getSetting('SCRIPT', 'custscript_main_index'));
     var timestamp = ctx.getSetting('SCRIPT', 'custscript_timestamp3');
 
-    // nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
-    // nlapiLogExecution('DEBUG', 'Param date_from', date_from);
-    // nlapiLogExecution('DEBUG', 'Param date_to', date_to);
-    // nlapiLogExecution('DEBUG', 'Param main_index', main_index);
-    // nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
+    nlapiLogExecution('DEBUG', 'Param zee_id', zee_id);
+    nlapiLogExecution('DEBUG', 'Param date_from', date_from);
+    nlapiLogExecution('DEBUG', 'Param date_to', date_to);
+    nlapiLogExecution('DEBUG', 'Param main_index', main_index);
+    nlapiLogExecution('DEBUG', 'Param timestamp', timestamp);
 
     // Values to be calculated
     var nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_nb_invoices_array'));
@@ -41,6 +41,7 @@ function calculateCommissions() {
     var commissions_total_array = [paid_services_commissions_total, unpaid_services_commissions_total, paid_products_commissions_total, unpaid_products_commissions_total] = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_commissions_total_array'));
     var bills_id_set = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_bills_id_set'));
     var operator_dict = JSON.parse(ctx.getSetting('SCRIPT', 'custscript_operator_dict'));
+    var cust_prod_set = JSON.parse(JSON.stringify([]));
 
     var credit_memo_services_array = [credit_memo_services_revenues = 0, credit_memo_services_revenues_tax = 0, credit_memo_services_revenues_total = 0, credit_memo_services_commissions = 0, credit_memo_services_commissions_tax = 0, credit_memo_services_commissions_total = 0];
     var credit_memo_products_array = [credit_memo_products_revenues = 0, credit_memo_products_revenues_tax = 0, credit_memo_products_revenues_total = 0, credit_memo_products_commissions = 0, credit_memo_products_commissions_tax = 0, credit_memo_products_commissions_total = 0];
@@ -177,8 +178,11 @@ function calculateCommissions() {
                         if (operator_dict[operator_id] == undefined) {
                             operator_dict[operator_id] = {
                                 name: operator_name,
+                                nb_items: 0,
                                 nb_invoice_paid: 0,
                                 nb_invoice_unpaid: 0,
+                                invoice_paid: 0,
+                                invoice_unpaid: 0,
                                 total_paid_amount: 0,
                                 tax_paid_amount: 0,
                                 total_unpaid_amount: 0,
@@ -187,9 +191,9 @@ function calculateCommissions() {
                             return false;
                         } else {
                             return true;
-                        } 
+                        }
                     });
-                    
+
                     switch (invoice_status) {
                         case 'Open': // unpaid
                             unpaid_products_revenues_tax += revenue_tax;
@@ -198,9 +202,10 @@ function calculateCommissions() {
                             unpaid_products_commissions_total += billing_amount;
                             nb_unpaid_products += 1;
                             if (!isNullorEmpty(operator_id)) {
+                                operator_dict[operator_id].nb_invoice_unpaid++;
                                 operator_dict[operator_id].total_unpaid_amount += billing_amount;
                                 operator_dict[operator_id].tax_unpaid_amount += tax_commission;
-                                operator_dict[operator_id].nb_invoice_unpaid += total_amount;
+                                operator_dict[operator_id].invoice_unpaid += total_amount;
                             }
                             break;
 
@@ -211,15 +216,29 @@ function calculateCommissions() {
                             paid_products_commissions_total += billing_amount;
                             nb_paid_products += 1;
                             if (!isNullorEmpty(operator_id)) {
+                                operator_dict[operator_id].nb_invoice_paid++;
                                 operator_dict[operator_id].total_paid_amount += billing_amount;
                                 operator_dict[operator_id].tax_paid_amount += tax_commission;
-                                operator_dict[operator_id].nb_invoice_paid += total_amount;
+                                operator_dict[operator_id].invoice_paid += total_amount;
                             }
-                            
+
                             break;
 
                         default:
                             break;
+                    }
+
+                    if (!isNullorEmpty(operator_id)) {
+                        if (cust_prod_set.indexOf(operator_id) == -1) {
+                            cust_prod_set.push(operator_id);
+                            var cust_prod_results = operatorPerInv(operator_id, date_from, date_to);
+                            var cust_prod_stock = cust_prod_results.getResults(0, 10);
+                            cust_prod_stock.forEach(function(cust_prod_stock) {
+                                var result_cust = JSON.parse(JSON.stringify(cust_prod_stock));
+                                var count = parseInt(result_cust.columns.name);
+                                operator_dict[operator_id].nb_items += count;
+                            });
+                        }
                     }
                 }
                 nb_invoices_array = [nb_paid_services, nb_unpaid_services, nb_paid_products, nb_unpaid_products];
@@ -262,7 +281,6 @@ function calculateCommissions() {
         zeeCommissionPageRecord.setFieldValue('custrecord_commissions_total_array', JSON.stringify(commissions_total_array));
         zeeCommissionPageRecord.setFieldValue('custrecord_bills_id_set', JSON.stringify(bills_id_set));
         zeeCommissionPageRecord.setFieldValue('custrecord_operator_dict', JSON.stringify(operator_dict));
-
         zeeCommissionPageRecord.setFieldValue('custrecord_products_array', JSON.stringify(credit_memo_products_array));
         zeeCommissionPageRecord.setFieldValue('custrecord_services_array', JSON.stringify(credit_memo_services_array));
         zeeCommissionPageRecord.setFieldValue('custrecord_nb_credit_memo_array', JSON.stringify(nb_credit_memo_array));
@@ -343,16 +361,18 @@ function loadBillCredit(invoice_id) {
 }
 
 /**
- * Update: Bill Credit Search Function
- * Search Via Invoice Number
- * @param {String} zee_id
+ * Update: Operator Invoice Search Function
+ * Search Via Operator ID
+ * @param {String} operator
+ *
  */
-function loadOpInvoice(operator) {
-    var searchCreditMemo = nlapiLoadSearch('customrecord_mp_ap_product_order', 'customsearch_ap_order_all_list_2_3');
-    var creditMemoFilter = [["custrecord_ap_line_item_operator", 'is', operator]]; // 3169057
-    searchCreditMemo.setFilterExpression(creditMemoFilter);
-    var resultCreditMemo = searchCreditMemo.runSearch();
-    var resultsCreditMemo = resultCreditMemo.getResults(0, 1000);
+function operatorPerInv(operator_id, date_from, date_to) {
+    var cust_prod_stock_search = nlapiLoadSearch('customrecord_customer_product_stock', 'customsearch3509');
+    cust_prod_stock_search.addFilter(new nlobjSearchFilter('custrecord_cust_prod_stock_operator', null, 'is', operator_id));
+    cust_prod_stock_search.addFilter(new nlobjSearchFilter('trandate', 'custrecord_prod_stock_invoice', 'within', date_from, date_to));
+    // var cust_prod_filter = [['custrecord_cust_prod_stock_operator', 'is', operator_id], 'AND', ['custrecord_prod_stock_invoice.trandate', 'within', date_from, date_to]]
+    // cust_prod_stock_search.setFilterExpression(cust_prod_filter);
+    var custProdStockResults = cust_prod_stock_search.runSearch();
 
-    return resultsCreditMemo;
+    return custProdStockResults;
 }

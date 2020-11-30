@@ -321,7 +321,7 @@ function displayZCPResults(nb_invoices_array, revenues_tax_array, revenues_total
 
     hideLoading();
     $('.commission_table').removeClass('hide');
-    var dataSet = [];    
+    var dataSet = [];
     dataSet = [total_row, paid_row, unpaid_row, credit_memo_row, services_row, paid_services_row, unpaid_services_row, credit_memo_services_row, products_row, paid_products_row, unpaid_products_row, credit_memo_products_row]
     saveCsv(dataSet);
 
@@ -690,6 +690,8 @@ function operatorTable(operator_dict) {
     inlineQty += '<thead>'
     inlineQty += '<tr>'
     inlineQty += '<th scope="col" id="table_operator_title" class="price_header"></th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_nb_items" class="price_header">Number of Items<br><span class="incl_excl_gst">[Total Collected]</span></th>'
+    inlineQty += '<th scope="col" id="table_operator_commission_nb_invoice" class="price_header">Number of Invoices</th>'
     inlineQty += '<th scope="col" id="table_operator_commission_invoice" class="price_header">Invoice Amount</th>'
     inlineQty += '<th scope="col" id="table_operator_commission" class="price_header">Income (combined)<br><span class="incl_excl_gst">[excl. GST]</span></th>'
     inlineQty += '<th scope="col" id="table_operator_commission_tax" class="price_header">Tax</th>'
@@ -701,8 +703,12 @@ function operatorTable(operator_dict) {
     operator_id_array.forEach(function(operator_id) {
         var operator_object = operator_dict[operator_id];
         var operator_name = operator_object.name;
-        var operator_invoice_paid =  operator_object.nb_invoice_paid;
-        var operator_invoice_unpaid = operator_object.nb_invoice_unpaid; 
+        var operator_nb_items = operator_object.nb_items;
+        var operator_nb_paid = operator_object.nb_invoice_paid;
+        var operator_nb_unpaid = operator_object.nb_invoice_unpaid;
+        var operator_nb_sum = (parseInt(operator_nb_unpaid) + parseInt(operator_nb_paid));
+        var operator_invoice_paid = operator_object.invoice_paid;
+        var operator_invoice_unpaid = operator_object.invoice_unpaid;
         var operator_invoice_sum = financial(operator_invoice_paid + operator_invoice_unpaid);
         operator_invoice_paid = financial(operator_invoice_paid);
         operator_invoice_unpaid = financial(operator_invoice_unpaid);
@@ -718,7 +724,9 @@ function operatorTable(operator_dict) {
         sum_row = sum_row.map(financial);
 
         inlineQty += '<tr class="' + operator_id + '_row sum_row">';
-        inlineQty += '<th scope="row" headers="table_operator_title">' + operator_name + '</th >'
+        inlineQty += '<td scope="row" headers="table_operator_title">' + operator_name + '</td >'
+        inlineQty += '<td headers="table_operator_commission_nb_items" class="price">' + operator_nb_items + '</td>'
+        inlineQty += '<td headers="table_operator_commission_nb_invoice" class="price">' + operator_nb_sum + '</td>'
         inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_sum + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + sum_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + sum_row[1] + '</td>'
@@ -727,6 +735,8 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row paid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Paid</th>'
+        inlineQty += '<td headers="table_operator_commission_nb_items" class="price"></td>'
+        inlineQty += '<td headers="table_operator_commission_nb_invoice" class="price">' + operator_nb_paid + '</td>'
         inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_paid + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + paid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + paid_row[1] + '</td>'
@@ -735,6 +745,8 @@ function operatorTable(operator_dict) {
 
         inlineQty += '<tr class="' + operator_id + '_row unpaid_row">'
         inlineQty += '<th scope="row" headers="table_operator_title">Unpaid</th>'
+        inlineQty += '<td headers="table_operator_commission_nb_items" class="price"></td>'
+        inlineQty += '<td headers="table_operator_commission_nb_invoice" class="price">' + operator_nb_unpaid + '</td>'
         inlineQty += '<td headers="table_operator_commission_invoice" class="price">' + operator_invoice_unpaid + '</td>'
         inlineQty += '<td headers="table_operator_commission" class="price">' + unpaid_row[0] + '</td>'
         inlineQty += '<td headers="table_operator_commission_tax" class="price">' + unpaid_row[1] + '</td>'
@@ -747,12 +759,6 @@ function operatorTable(operator_dict) {
 
     return inlineQty;
 }
-
-// function creditMemos(){
-//     var inlineQty = '<style>';
-
-//     return inlineQty;
-// }
 
 /**
  * Used to set the value of the date input fields.
@@ -837,7 +843,7 @@ function saveCsv(dataSet) {
     var headers = ["", "Number of Invoices", "Revenue [excl. GST]", "Tax", "Revenue [incl. GST]", "Income (combined)[excl. GST]", "Tax", "Income (combined)[incl. GST]"]
     headers = headers.slice(0, headers.length); // .join(', ')
     var csv = headers + "\n";
-    var rows = ['Total', 'Paid', 'Unpaid', 'Credit Memo', 'Services', 'Paid', 'Unpaid', 'Credit Memo','Products', 'Paid', 'Unpaid', 'Credit Memo'];
+    var rows = ['Total', 'Paid', 'Unpaid', 'Credit Memo', 'Services', 'Paid', 'Unpaid', 'Credit Memo', 'Products', 'Paid', 'Unpaid', 'Credit Memo'];
     var count = 0;
     dataSet.forEach(function(row) {
         row[7] = financialToNumber(row[6]);
