@@ -232,7 +232,7 @@ function calculateCommissions() {
                         if (cust_prod_set.indexOf(operator_id) == -1) {
                             cust_prod_set.push(operator_id);
                             var cust_prod_results = operatorPerInv(operator_id, date_from, date_to);
-                            var cust_prod_stock = cust_prod_results.getResults(0, 10);
+                            var cust_prod_stock = cust_prod_results.getResults(0, 25);
                             cust_prod_stock.forEach(function(cust_prod_stock) {
                                 var result_cust = JSON.parse(JSON.stringify(cust_prod_stock));
                                 var count = parseInt(result_cust.columns.name);

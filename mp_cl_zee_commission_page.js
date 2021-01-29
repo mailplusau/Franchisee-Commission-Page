@@ -61,7 +61,7 @@ function pageInit() {
         loadCommissionTable();
     } else if (is_params == 'F' && userRole == 1000) {
         console.log("(is_params == 'F' && userRole == 1000)", (is_params == 'F' && userRole == 1000), 'will call reloadPageWithParams()');
-        reloadPageWithParams();
+        reloadPageWithParams(param_zee_id);
     }
     if (!isNullorEmpty($('#period_dropdown option:selected').val())) {
         selectDate();
@@ -94,8 +94,11 @@ function hideLoading() {
  * Triggered when a new Franchisee is selected,
  * or when a new date is selected, and there is a selected Franchisee.
  */
-function reloadPageWithParams() {
+function reloadPageWithParams(param_zee_id) {
     var zee_id = $('#zee_dropdown option:selected').val();
+    if (isNullorEmpty(zee_id)){
+        zee_id = parseInt(param_zee_id);
+    }
     var date_from = dateISOToNetsuite($('#date_from').val());
     var date_to = dateISOToNetsuite($('#date_to').val());
     var params = {

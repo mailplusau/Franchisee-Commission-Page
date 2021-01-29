@@ -1,17 +1,17 @@
 /**
-* Module Description
-* 
-* NSVersion    Date                Author         
-* 1.00         2020-08-19 14:03:00 Raphael
-*
-* Description: Delete all the instances of 'customrecord_zee_commission_page' and 
-* 'customrecord_zee_comm_inv_datatable' records. These records use a timestamp and 
-* are meant to be loaded only once. Therefore, they don't need to be saved.
-* 
-* @Last Modified by:   raphaelchalicarnemailplus
-* @Last Modified time: 2020-08-19 14:03:00
-*
-*/
+ * Module Description
+ * 
+ * NSVersion    Date                Author         
+ * 1.00         2020-08-19 14:03:00 Raphael
+ *
+ * Description: Delete all the instances of 'customrecord_zee_commission_page' and 
+ * 'customrecord_zee_comm_inv_datatable' records. These records use a timestamp and 
+ * are meant to be loaded only once. Therefore, they don't need to be saved.
+ * 
+ * @Last Modified by:   raphaelchalicarnemailplus
+ * @Last Modified time: 2020-08-19 14:03:00
+ *
+ */
 
 var baseURL = 'https://1048144.app.netsuite.com';
 if (nlapiGetContext().getEnvironment() == "SANDBOX") {
@@ -24,7 +24,7 @@ function deleteRecords() {
     var zcpSearch = nlapiLoadSearch('customrecord_zee_commission_page', 'customsearch_zee_commission_page_3');
     var zcpSearchResultSet = zcpSearch.runSearch();
     var index = 0;
-    zcpSearchResultSet.forEachResult(function (zcpResult) {
+    zcpSearchResultSet.forEachResult(function(zcpResult) {
         deleteResultRecord(zcpResult, index);
         index += 1;
         return true;
@@ -34,7 +34,7 @@ function deleteRecords() {
     var zcidSearch = nlapiLoadSearch('customrecord_zee_comm_inv_datatable', 'customsearch_zee_comm_inv_datatable');
     var zcidSearchResultSet = zcidSearch.runSearch();
     index = 0;
-    zcidSearchResultSet.forEachResult(function (zcidResult) {
+    zcidSearchResultSet.forEachResult(function(zcidResult) {
         deleteResultRecord(zcidResult, index);
         index += 1;
         return true;
