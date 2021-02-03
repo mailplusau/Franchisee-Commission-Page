@@ -24,6 +24,12 @@ var zee_id = '';
 if (userRole == 1000) {
     zee_id = ctx.getUser();
 }
+
+if (userRole == 1000) { //Franchisee
+    zee = ctx.getUser();
+} else if (userRole == 3) { //Administrator
+    zee = 6; //test
+}
 // load_record_interval is a global var so that the function clearInterval() can be called anywhere in the code.
 var load_record_interval;
 
@@ -96,9 +102,9 @@ function hideLoading() {
  */
 function reloadPageWithParams(param_zee_id) {
     var zee_id = $('#zee_dropdown option:selected').val();
-    if (isNullorEmpty(zee_id)){
-        zee_id = parseInt(param_zee_id);
-    }
+    // if (isNullorEmpty(zee_id)){
+    //     zee_id = parseInt(param_zee_id);
+    // }
     var date_from = dateISOToNetsuite($('#date_from').val());
     var date_to = dateISOToNetsuite($('#date_to').val());
     var params = {

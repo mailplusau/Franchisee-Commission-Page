@@ -181,7 +181,18 @@ function franchiseeDropdownSection(zee_id) {
     inlineQty += '<option></option>';
 
     // Load the franchisees options
-    var zeesSearch = nlapiLoadSearch('partner', 'customsearch907');
+    // var zeesSearch = nlapiLoadSearch('partner', 'customsearch907');
+    // var zeesSearchResults = zeesSearch.runSearch();
+    // zeesSearchResults.forEachResult(function (zeesSearchResult) {
+    //     var opt_zee_id = zeesSearchResult.getValue("internalid", null, "GROUP");
+    //     var opt_zee_name = zeesSearchResult.getValue("companyname", null, "GROUP");
+    //     var selected_option = (opt_zee_id == zee_id) ? 'selected' : '';
+    //     inlineQty += '<option value="' + opt_zee_id + '" ' + selected_option + '>' + opt_zee_name + '</option>';
+    //     return true;
+    // });
+
+    // Update - Include Zee's That Were Missing
+    var zeesSearch = nlapiLoadSearch('partner', 'customsearch_zee_comm_active_zee');
     var zeesSearchResults = zeesSearch.runSearch();
     zeesSearchResults.forEachResult(function (zeesSearchResult) {
         var opt_zee_id = zeesSearchResult.getValue("internalid", null, "GROUP");
@@ -190,7 +201,7 @@ function franchiseeDropdownSection(zee_id) {
         inlineQty += '<option value="' + opt_zee_id + '" ' + selected_option + '>' + opt_zee_name + '</option>';
         return true;
     });
-
+    
     inlineQty += '</select>';
     inlineQty += '</div></div></div></div>';
 
